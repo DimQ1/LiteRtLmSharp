@@ -27,26 +27,34 @@
 LLM inference (e.g. Gemma) via P/Invoke over its C API, with native binaries distributed per-RID as
 NuGet packages (LLamaSharp-style). Status: **stable (1.x)**.
 
+> **Fork note** ([DimQ1/LiteRtLmSharp](https://github.com/DimQ1/LiteRtLmSharp)). This fork publishes its
+> packages to its own GitHub Packages feed (`nuget.pkg.github.com/DimQ1`) and mirrors them as release
+> assets, with the native binaries unchanged (Google's official LiteRT-LM prebuilts). **1.4.0** is
+> upstream 1.3.0 plus the engine-usage improvements proposed upstream as
+> [OrihuelaConde/LiteRtLmSharp#15](https://github.com/OrihuelaConde/LiteRtLmSharp/pull/15); upstream's
+> own 1.3.0 on nuget.org is a **different build with the same number**, so pin 1.4.0 to get these
+> features and do not mix the two 1.3.0 builds on one machine.
+
 | Platform | Native | NuGet | CPU | GPU | Validated on |
 |---|:---:|:---:|:---:|:---:|---|
 | win-x64 | ✅ | ✅ | ✅ | ✅ | real hardware |
 | linux-x64 | ✅ | ✅ | ✅ | ✅ | real hardware (GPU last checked with the v0.13.1 libraries) |
-| linux-arm64 | ✅ | ⏳ | ✅ | — | CI |
+| linux-arm64 | ✅ | ✅ | ✅ | — | CI |
 | android-arm64 | ✅ | ✅ | ✅ | ✅ | real device |
-| android-x64 (emulator) | ✅ | ⏳ | ✅ | — | emulator |
+| android-x64 (emulator) | ✅ | ✅ | ✅ | — | emulator |
 | osx-arm64 | ✅ | ✅ | ✅ | ✅ | CI |
 | ios-arm64 | ✅ | ⏳ | — | — | pending |
 
 <sub>**CPU / GPU** = inference validated on that backend. macOS GPU runs in CI on the **WebGPU**
 (Dawn→Metal) delegate; the native Metal delegate ships as a real-hardware fallback. linux-arm64 and
-android-x64 publish with the next release. The iOS runtime package ships once on-device validation
-lands.</sub>
+android-x64 got their runtime packages in **1.3.0** and are part of every later release set. The iOS
+runtime package ships once on-device validation lands.</sub>
 
 ## Quick start
 
 ```xml
-<PackageReference Include="LiteRtLmSharp" Version="1.3.0" />
-<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.3.0" />
+<PackageReference Include="LiteRtLmSharp" Version="1.4.0" />
+<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.4.0" />
 <!-- or LiteRtLmSharp.runtime.linux-x64 / linux-arm64 / android-arm64 / android-x64 (emulator) / osx-arm64, per target -->
 ```
 
@@ -55,6 +63,7 @@ version number**. Which LiteRT-LM native build each release wraps:
 
 | LiteRtLmSharp | LiteRT-LM native |
 |---|---|
+| 1.4.0 | v0.18.0 (Google's official C API prebuilts; this fork: upstream 1.3.0 + the engine-usage improvements) |
 | 1.3.0 | v0.18.0 (Google's official C API prebuilts) |
 | 1.2.0 | v0.16.0 (Google's official C API prebuilts) |
 | 1.1.1 | v0.14.0 |
