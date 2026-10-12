@@ -173,7 +173,9 @@ jobs:
         run: |
           $dir = Join-Path $env:RUNNER_TEMP 'smoke-fed'
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          @'
+          # Here-strings are assigned first: a here-string terminator must be alone on its line, so it
+          # cannot be piped into the transform.
+          $csproj = @'
           <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
@@ -187,8 +189,9 @@ jobs:
               <PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="__VERSION__" />
             </ItemGroup>
           </Project>
-          '@ .Replace('__VERSION__', $env:PKG_VERSION) | Set-Content (Join-Path $dir 'Smoke.csproj')
-          @'
+          '@
+          $csproj.Replace('__VERSION__', $env:PKG_VERSION) | Set-Content (Join-Path $dir 'Smoke.csproj')
+          $program = @'
           using LiteRtLmSharp;
 
           // Touching LiteRtEngine runs the native-library resolver, and SetMinLogLevel is a real
@@ -197,22 +200,28 @@ jobs:
           Console.WriteLine($"live engines={LiteRtEngine.LiveEngineCount}, multi-engine={LiteRtEngine.AllowMultipleEngines}");
           Console.WriteLine($"near-greedy={LiteRtSamplerParams.NearGreedy.Strategy}/{LiteRtSamplerParams.NearGreedy.TopP}/{LiteRtSamplerParams.NearGreedy.Temperature}");
           Console.WriteLine("NATIVE_OK");
-          '@ | Set-Content (Join-Path $dir 'Program.cs')
-          @"
+          '@
+          $program | Set-Content (Join-Path $dir 'Program.cs')
+          $feed = (Resolve-Path artifacts).Path
+          $config = @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <packageSources>
               <clear />
-              <add key="local" value="$(Resolve-Path artifacts | Select-Object -ExpandProperty Path)" />
+              <add key="local" value="$feed" />
               <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
             </packageSources>
           </configuration>
-          "@ | Set-Content (Join-Path $dir 'nuget.config')
+          "@
+          $config | Set-Content (Join-Path $dir 'nuget.config')
           Push-Location $dir
           try {
-            $out = dotnet run -c Release
+            $out = dotnet run -c Release 2>&1
             $out | ForEach-Object { Write-Host $_ }
-            if ($out -notmatch 'NATIVE_OK') { throw 'The packed packages could not resolve the native library.' }
+            # Join first: -match on an array filters it (a non-empty result would read as "failed").
+            if (($out | Out-String) -notmatch 'NATIVE_OK') {
+              throw 'The packed packages could not resolve the native library.'
+            }
           }
           finally { Pop-Location }
 
