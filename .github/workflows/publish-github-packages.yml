@@ -236,8 +236,17 @@ jobs:
           foreach ($pkg in Get-ChildItem artifacts -Filter *.nupkg) {
             # Package versions are immutable; re-running the workflow for a version that is already on
             # the feed is expected and must not fail the run.
-            dotnet nuget push $pkg.FullName --source github --skip-duplicate
-            if ($LASTEXITCODE -ne 0) { $failed += $pkg.Name }
+            # A slow upload must not fail it either: the android-arm64 package is the largest, and the
+            # 300 s default timeout is reachable on a busy runner, so the timeout is raised and a
+            # transient failure gets one more attempt.
+            $pushed = $false
+            foreach ($attempt in 1, 2) {
+              dotnet nuget push $pkg.FullName --source github --skip-duplicate --timeout 1800
+              if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
+              Write-Host "Attempt $attempt failed for $($pkg.Name)"
+              if ($attempt -eq 1) { Start-Sleep -Seconds 15 }
+            }
+            if (-not $pushed) { $failed += $pkg.Name }
           }
           if ($failed.Count) { throw "Failed to push: $($failed -join ', ')" }
           Write-Host "Pushed $((Get-ChildItem artifacts -Filter *.nupkg).Count) package(s) to $feed"
