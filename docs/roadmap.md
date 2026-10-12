@@ -1,8 +1,7 @@
 # Project status and roadmap
 
-Last updated: 2026-10-07 (v0.18.0 cycle toward 1.3.0: repin, linux-arm64/android-x64, native error
-reporting, embeddings and model info merged to master (#12, #13); release pending; latest on nuget.org:
-1.2.0, LiteRT-LM v0.16.0). Source of truth for "what's done and what's pending".
+Last updated: 2026-10-12 (1.3.0 published: LiteRT-LM v0.18.0, embeddings, model metadata, native failure
+reasons, linux-arm64 and android-x64 runtime packages; latest on nuget.org: 1.3.0, LiteRT-LM v0.18.0). Source of truth for "what's done and what's pending".
 
 ## Status per platform
 
@@ -180,7 +179,7 @@ remaining 25 unbound functions are unchanged: the raw Session API (13), response
 
 ## Actionable next steps (suggested order)
 
--4. **v0.18.0 CYCLE → 1.3.0 — IN PROGRESS (started 2026-10-06).** Upstream v0.18.0 (2026-10-06) ships
+-4. **v0.18.0 CYCLE → 1.3.0 — CLOSED: 1.3.0 PUBLISHED 2026-10-12 (started 2026-10-06).** Upstream v0.18.0 (2026-10-06) ships
    EmbeddingGemma 2 (multimodal embeddings, Matryoshka truncation), a model-info API, a thread-local
    error reporter and four engine/session settings; v0.17.0/v0.17.1 (skipped) brought local-attention
    memory work, Metal residency and Gemma 4 12B extensions. **The C API zip is not published for
@@ -247,6 +246,8 @@ remaining 25 unbound functions are unchanged: the raw Session API (13), response
    - **Release 1.3.0** with the maintainer's GO (2026-10-12). The maintainer first waited in case Google
      attached the C API zip to v0.18.0 after all; six days after the release it had not (v0.17.0 and
      v0.17.1 never got one either), so 1.3.0 ships the wheel-sourced libraries already validated.
+     Published by `pack-nuget.yml` run 38285671351: nine packages (core, Extensions.AI, SemanticKernel and
+     six runtimes; iOS still excluded) and the v1.3.0 GitHub release. Post-publish smoke from nuget.org on win-x64 (2026-10-12, HTTP cache cleared): core chat, `IChatClient`, Semantic Kernel and embeddings on CPU and on GPU (RTX 3080), all green; the restored `LiteRtLm.dll` is byte-identical to the one validated before the release.
 
 -3. **v0.16.0 CYCLE — evaluation of Google's official C API prebuilts DONE (2026-08-12 →
    2026-09-02, branch `capi-prebuilts-probe`); the repin shipped in 1.2.0 (2026-09-05).**
