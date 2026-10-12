@@ -10,9 +10,9 @@ reporting, embeddings and model info merged to master (#12, #13); release pendin
 |---|:---:|:---:|:---:|:---:|---|
 | win-x64 | ✅ | ✅ | ✅ | ✅ | real hardware (+ CI, CPU) |
 | linux-x64 | ✅ | ✅ | ✅ | ✅ | real hardware with the self-built v0.13.1 set (CPU + GPU); official prebuilts: Docker + CI (CPU) |
-| linux-arm64 | ✅ | ⏳ 1.3.0 | ✅ | — | CI (ubuntu-24.04-arm, CPU): full suite green since 2026-10-07, YNNPACK included; no arm64 GPU on hand |
+| linux-arm64 | ✅ | ✅ 1.3.0 | ✅ | — | CI (ubuntu-24.04-arm, CPU): full suite green since 2026-10-07, YNNPACK included; no arm64 GPU on hand |
 | android-arm64 | ✅ | ✅ | ✅ | ✅ | real device (Moto G100, Adreno 650; v0.18.0 from the packed 1.3.0 packages, 2026-10-06) |
-| android-x64 | ✅ | ⏳ 1.3.0 | ✅ | — | x86_64 emulator (API 35): chat and embeddings on CPU from the packed packages; emulators expose no GPU |
+| android-x64 | ✅ | ✅ 1.3.0 | ✅ | — | x86_64 emulator (API 35): chat and embeddings on CPU from the packed packages; emulators expose no GPU |
 | osx-arm64 | ✅ | ✅ | ✅ | ✅ | CI only (macos-15; GPU via WebGPU); v0.18.0 green on CPU and GPU since 2026-10-07 |
 | ios-arm64 | ✅ | ⏳ | — | — | CI build/link only (no device); on-device runtime + publish pending |
 
@@ -244,8 +244,9 @@ remaining 25 unbound functions are unchanged: the raw Session API (13), response
      filled). The iOS package check
      needed the .NET-for-iOS workload and Xcode pinned as a pair (workload set 10.0.400.1 with Xcode 26.6:
      the latest workload set asked for Xcode 27, which the macos-26 image lacks).
-   - **Release 1.3.0** with the maintainer's GO. Before publishing, the maintainer chose to wait until the
-     afternoon of 2026-10-07 in case Google attaches the C API zip to v0.18.0 after all.
+   - **Release 1.3.0** with the maintainer's GO (2026-10-12). The maintainer first waited in case Google
+     attached the C API zip to v0.18.0 after all; six days after the release it had not (v0.17.0 and
+     v0.17.1 never got one either), so 1.3.0 ships the wheel-sourced libraries already validated.
 
 -3. **v0.16.0 CYCLE — evaluation of Google's official C API prebuilts DONE (2026-08-12 →
    2026-09-02, branch `capi-prebuilts-probe`); the repin shipped in 1.2.0 (2026-09-05).**
