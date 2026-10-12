@@ -43,6 +43,9 @@ on:
 env:
   # Keep in sync with Directory.Build.props <LiteRtLmVersion>.
   NATIVE_REF: v0.18.0
+  # Where the native-<NATIVE_REF> release lives (the download step uses
+  # `vars.NATIVE_ASSETS_REPO || github.repository`). A fork sets the repository variable once to the
+  # repository that publishes the natives; upstream leaves it unset and uses its own releases.
   MODEL_FILE: gemma-4-E2B-it.litertlm
   MODEL_URL: https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm
   # LFS oid of the file on Hugging Face; also guards against a cached/partial download.
@@ -159,7 +162,7 @@ jobs:
           # Retry: the releases API occasionally throws transient 401/5xx (seen 2026-06-10).
           for attempt in 1 2 3; do
             gh release download "native-${NATIVE_REF}" \
-              --repo "${{ github.repository }}" \
+              --repo "${{ vars.NATIVE_ASSETS_REPO || github.repository }}" \
               --pattern '${{ matrix.asset }}' \
               --dir . && break
             echo "download attempt $attempt failed; retrying in 20s..."

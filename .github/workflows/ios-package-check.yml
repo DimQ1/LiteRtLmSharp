@@ -75,7 +75,7 @@ jobs:
           set -euo pipefail
           mkdir -p natives runtimes/ios-arm64
           gh release download "native-${NATIVE_REF}" \
-            --repo "${{ github.repository }}" \
+            --repo "${{ vars.NATIVE_ASSETS_REPO || github.repository }}" \
             --pattern 'litertlm-ios_arm64.tar.gz' \
             --dir natives
           tar -xzf natives/litertlm-ios_arm64.tar.gz -C runtimes/ios-arm64
