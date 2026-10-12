@@ -740,6 +740,9 @@ AOT/trim-clean** (MEAI/SK aren't); the core `LiteRtLmSharp` package keeps its AO
 - **#2572** (our GPU cache bug, fixed in v0.14.0): still no comments; the close-request with our
   verification is pending (draft with the maintainer).
 - **#3173** (LoRA slots in the gemma-4 bundles) and **#2149** (our data posted 2026-09-05): no response.
+- **#3929** (filed 2026-10-12): the EmbeddingGemma 2 task prefixes in the LiteRT-LM guide differ from the
+  model card's, and upstream's own `js/apps/embedding_search` demo uses the model card's pair. Asked
+  which set is canonical. When they answer, align [embeddings.md](embeddings.md), which documents both.
 - **PR #2552** (listing in upstream's bindings table): untouched since June.
 - **Gemma 4 bundles:** the base `.litertlm` files are unchanged (E2B and E4B byte-identical in size to
   ours); the 2026-08-31 E2B commit only added a Tensor G6 variant. **EmbeddingGemma 2** bundles appeared
