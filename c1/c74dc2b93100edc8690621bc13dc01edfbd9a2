@@ -1,0 +1,21 @@
+.github/scripts/assert-elf-exports.sh
+  s_649d37fd14642b::t_ad5edffbf6bfc3 10,18
+.github/scripts/package-elf.sh
+  s_649d37fd14642b::t_f3e15160409997 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c1c74dc2b93100edc8690621bc13dc01edfbd9a2",
+  "prompts": {},
+  "sessions": {
+    "s_649d37fd14642b": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "s_649d37fd14642b",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
