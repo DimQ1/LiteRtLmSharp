@@ -389,9 +389,14 @@ jobs:
             bash .github/scripts/fetch-upstream-asset.sh THIRD_PARTY_NOTICES.txt upstream
             cp upstream/THIRD_PARTY_NOTICES.txt release/THIRD_PARTY_NOTICES.litert-lm.txt
             echo "NOTICES_SOURCE=the release's THIRD_PARTY_NOTICES.txt" >> "$GITHUB_ENV"
+          elif [ "$ZIP_AVAILABLE" = true ]; then
+            bash .github/scripts/fetch-upstream-asset.sh "$CAPI_ZIP" upstream
+            python3 .github/scripts/notices-from-archive.py \
+              "upstream/$CAPI_ZIP" release/THIRD_PARTY_NOTICES.litert-lm.txt "$UPSTREAM_TAG"
+            echo "NOTICES_SOURCE=the license bundle in ${CAPI_ZIP}" >> "$GITHUB_ENV"
           else
             bash .github/scripts/fetch-upstream-asset.sh CLiteRTLM.xcframework.zip upstream
-            python3 .github/scripts/notices-from-xcframework.py \
+            python3 .github/scripts/notices-from-archive.py \
               upstream/CLiteRTLM.xcframework.zip release/THIRD_PARTY_NOTICES.litert-lm.txt "$UPSTREAM_TAG"
             echo "NOTICES_SOURCE=the license bundle of the release's CLiteRTLM.xcframework (the release has no THIRD_PARTY_NOTICES.txt)" >> "$GITHUB_ENV"
           fi

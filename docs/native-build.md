@@ -65,9 +65,9 @@ Windows ones in `inspect-pe.py`, both under `.github/scripts/`.
 
 **Third-party notices.** Each runtime package carries `THIRD_PARTY_NOTICES.litert-lm.txt`. The
 workflow takes the release's `THIRD_PARTY_NOTICES.txt` asset when there is one (v0.16.0). Releases
-without it get a file built by `notices-from-xcframework.py` from the license bundle inside the
-release's own `CLiteRTLM.xcframework` (the framework's LICENSE plus one license per third-party
-component); the v0.16.0 asset was itself built from the Apple frameworks and covered every platform.
+without it get a file built by `notices-from-archive.py`: C API 1.0.0 ships `LICENSE` and `licenses/*`
+in its archive; older releases use the bundle inside `CLiteRTLM.xcframework` (the framework's LICENSE
+plus one license per third-party component). Missing license data fails packaging.
 The `native-<tag>` release notes record both sources.
 
 ## Platform notes that matter to consumers
