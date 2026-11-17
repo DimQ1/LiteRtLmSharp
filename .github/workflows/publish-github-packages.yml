@@ -256,7 +256,8 @@ jobs:
             # transient failure gets one more attempt.
             $pushed = $false
             foreach ($attempt in 1, 2) {
-              dotnet nuget push $pkg.FullName --source github --skip-duplicate --timeout 1800
+              dotnet nuget push $pkg.FullName --source github --skip-duplicate --timeout 1800 `
+                --api-key '${{ secrets.GITHUB_TOKEN }}'
               if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
               Write-Host "Attempt $attempt failed for $($pkg.Name)"
               if ($attempt -eq 1) { Start-Sleep -Seconds 15 }
@@ -272,19 +273,49 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The same .nupkg files as a GitHub release: an auditable copy that outlives the run's
-          # artifact retention (the feed stays the installable source).
-          gh release view "v$env:PKG_VERSION" --repo '${{ github.repository }}' *> $null
-          if ($LASTEXITCODE -eq 0) { Write-Host "Release v$($env:PKG_VERSION) exists; leaving it alone."; exit 0 }
-          $releaseFlags = if ($env:PKG_VERSION.Contains('-')) { @('--prerelease') } else { @() }
-          gh release create "v$env:PKG_VERSION" (Get-ChildItem artifacts/*.nupkg).FullName @releaseFlags `
-            --repo '${{ github.repository }}' --target $env:GITHUB_SHA `
-            --title "v$env:PKG_VERSION" `
-            --notes "Published to the GitHub Packages feed: https://nuget.pkg.github.com/$env:FEED_OWNER/index.json`n`nNative binaries: LiteRT-LM $env:NATIVE_REF (Google's official C API prebuilts)."
+          # A retried push may have skipped immutable packages from an earlier commit. Mirror the
+          # actual feed bytes, not a rebuild with different SourceLink/commit metadata.
+          $credentials = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('${{ github.actor }}:' + $env:GH_TOKEN))
+          $headers = @{ Authorization = "Basic $credentials" }
+          $index = Invoke-RestMethod "https://nuget.pkg.github.com/$env:FEED_OWNER/index.json" -Headers $headers
+          $base = ($index.resources | Where-Object { $_.'@type' -like 'PackageBaseAddress*' } | Select-Object -First 1).'@id'
+          if (-not $base) { throw 'The feed has no package download endpoint.' }
+          if ($base -notlike 'https://nuget.pkg.github.com/*') { throw 'Unexpected authenticated download host.' }
+          New-Item -ItemType Directory -Force published | Out-Null
+          $publishedCommit = $null
+          foreach ($pkg in Get-ChildItem artifacts -Filter *.nupkg) {
+            $suffix = ".$env:PKG_VERSION.nupkg"
+            $id = $pkg.Name.Substring(0, $pkg.Name.Length - $suffix.Length).ToLowerInvariant()
+            $version = $env:PKG_VERSION.ToLowerInvariant()
+            $url = "$($base.TrimEnd('/'))/$id/$version/$id.$version.nupkg"
+            $destination = Join-Path (Resolve-Path published) $pkg.Name
+            Invoke-WebRequest $url -Headers $headers -OutFile $destination
+            if ($id -eq 'litertlmsharp') {
+              $archive = [IO.Compression.ZipFile]::OpenRead($destination)
+              try {
+                $entry = $archive.Entries | Where-Object FullName -like '*.nuspec' | Select-Object -First 1
+                $reader = [IO.StreamReader]::new($entry.Open())
+                try { [xml]$spec = $reader.ReadToEnd() } finally { $reader.Dispose() }
+                $publishedCommit = [string]$spec.package.metadata.repository.commit
+              }
+              finally { $archive.Dispose() }
+            }
+          }
+          if ($publishedCommit -notmatch '^[0-9a-f]{40}$') { throw 'Published managed package has no source commit.' }
+          $tag = "v$env:PKG_VERSION"
+          $releaseArgs = @('release', 'create', $tag, '--repo', '${{ github.repository }}',
+            '--target', $publishedCommit, '--title', $tag,
+            '--notes', "GitHub Packages: https://nuget.pkg.github.com/$env:FEED_OWNER/index.json`nNative runtime: LiteRT-LM $env:NATIVE_REF. Assets are the exact published NuGet packages.")
+          if ($env:PKG_VERSION.Contains('-')) { $releaseArgs += '--prerelease' }
+          gh release view $tag --repo '${{ github.repository }}' *> $null
+          if ($LASTEXITCODE -eq 0) {
+            $releaseArgs = @('release', 'upload', $tag, '--repo', '${{ github.repository }}', '--clobber')
+          }
+          $releaseArgs += @(Get-ChildItem published -Filter *.nupkg | ForEach-Object FullName)
+          & gh @releaseArgs
+          if ($LASTEXITCODE -ne 0) { throw 'Release mirror failed.' }
 
       - uses: actions/upload-artifact@v4
         with:
           name: nupkgs-${{ env.PKG_VERSION }}
-          path: |
-            artifacts/*.nupkg
-            artifacts/*.snupkg
+          path: ${{ inputs.dry_run && 'artifacts/*.nupkg' || 'published/*.nupkg' }}
