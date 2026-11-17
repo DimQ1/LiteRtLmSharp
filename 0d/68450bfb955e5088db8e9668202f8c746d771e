@@ -1,0 +1,27 @@
+LiteRtLmSharp/Native/LiteRtLmNative.Embeddings.cs
+  s_0b812487364c9b::t_723cb76c623e52 289-290
+LiteRtLmSharp/Native/LiteRtLmNative.ModelInfo.cs
+  s_0b812487364c9b::t_60d4b0c6b65e52 260-261
+.github/workflows/native-release.yml
+  s_0b812487364c9b::t_4f4bdd757a0041 262,269-274,289-292,298,302,326,330-335
+LiteRtLmSharp.Tests/NativeV1Tests.cs
+  s_0b812487364c9b::t_e25a68e1d98d36 32-42
+LiteRtLmSharp/Native/LiteRtLmNative.cs
+  s_0b812487364c9b::t_1cbbc5ac1196ce 7,1088,1096-1097,1124-1125,1173-1174,1423-1424,1469-1470,1484-1485,1499-1500
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0d68450bfb955e5088db8e9668202f8c746d771e",
+  "prompts": {},
+  "sessions": {
+    "s_0b812487364c9b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "eeabfda0-8629-4cc5-acae-ada9d99b89ed",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
