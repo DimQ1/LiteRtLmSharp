@@ -104,9 +104,7 @@ public sealed class LiteRtModelInfo
         if (!File.Exists(modelPath))
             throw new ArgumentException($"Model file not found: {modelPath}", nameof(modelPath));
 
-        // The native reader opens the file through the C runtime's narrow API, which on Windows reads the
-        // path in the ANSI code page rather than UTF-8 (see NarrowPath).
-        byte[] nativePath = NarrowPath.Encode(modelPath, out bool opens);
+        byte[] nativePath = NarrowPath.Encode(modelPath);
         NativeError.Clear();
         nint filePtr;
         unsafe
@@ -116,11 +114,7 @@ public sealed class LiteRtModelInfo
         }
         if (filePtr == nint.Zero)
             throw NativeError.Exception(
-                $"litert_lm_loaded_file_create returned null for '{modelPath}'.",
-                hint: opens ? null
-                    : "On Windows the native metadata reader opens paths in the ANSI code page, which cannot spell " +
-                      "this one, and the volume has no ASCII short name for it: move the model to a folder whose " +
-                      "path uses only characters of the system code page.");
+                $"litert_lm_loaded_file_create returned null for '{modelPath}'.");
 
         using var file = new LoadedFileHandle(filePtr);
         nint f = file.Ptr;

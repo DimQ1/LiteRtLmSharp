@@ -6,6 +6,15 @@ LiteRT-LM native version it wraps (see the compatibility table in the [README](R
 managed `LiteRtLmSharp` package and every `LiteRtLmSharp.runtime.<rid>` package share one version and
 are published together.
 
+## [1.5.0-dimq1.2] - 2026-11-17
+
+- Correct Windows metadata paths: the 0.19.1 reader mixes UTF-8 inspection and narrow stream reads.
+  Prefer an ASCII short-name alias for non-ASCII paths; fail with storage guidance when none exists.
+  Model-backed tests cover Latin accents and combined Chinese/Cyrillic names.
+- LoRA isolation is fixed upstream in 0.19.1. Tests now compare base replies with and without a live
+  adapter and after its disposal, rather than expecting the old engine-wide adapter bug.
+- Supersedes the first 0.19.1 prerelease; package versions are immutable and are never overwritten.
+
 ## [1.5.0-dimq1.1] - 2026-11-17
 
 ### Native runtime upgrade

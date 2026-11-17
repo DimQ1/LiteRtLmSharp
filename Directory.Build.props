@@ -8,11 +8,11 @@
     the README compatibility table maps each release to the LiteRT-LM tag it was built against.
   -->
   <PropertyGroup>
-    <Version>1.5.0-dimq1.1</Version>
+    <Version>1.5.0-dimq1.2</Version>
     <!-- LiteRT-LM release tag whose official C API prebuilts the native packages ship (native-release.yml input). -->
     <LiteRtLmVersion>v0.19.1</LiteRtLmVersion>
     <!-- Shown on the nuget.org version page; update each release. Full history in CHANGELOG.md. -->
-    <PackageReleaseNotes>1.5.0-dimq1.1: fork release on LiteRT-LM v0.19.1 and C API 1.0.0. All bound functions use the status/out-parameter ABI with checked size_t conversions and updated ownership; incompatible older native binaries are rejected before use. Includes the maintainer's reviewed changes from PR 15: per-engine AllowMultipleEngines, working Greedy/TopK mapping, refreshed TokenCountCached, IsCancelled, safe engine/conversation lifetime and connector fixes. Breaking from earlier fork packages: Snapshot/Resume, NearGreedy and LiteRtSamplerNotSupportedException are removed; keep application-owned text history for partial streamed continuation. Managed and runtime packages must use the same version. Full notes: https://github.com/DimQ1/LiteRtLmSharp/blob/master/CHANGELOG.md</PackageReleaseNotes>
+    <PackageReleaseNotes>1.5.0-dimq1.2: LiteRT-LM v0.19.1 / C API 1.0.0, with Unicode metadata-path handling corrected for the runtime's mixed Windows encodings. Base and adapted LoRA conversations are isolated in this runtime; tests verify restoration of base weights. Includes the reviewed PR 15 engine fixes and all status/out-parameter bindings, checked native-size counters and borrowed stop-token ownership. Older native ABIs are rejected before use. Breaking from older fork APIs: Snapshot/Resume, NearGreedy and LiteRtSamplerNotSupportedException are removed; applications must keep text replay state for partial streamed continuation. Update managed and runtime packages together. Full notes: https://github.com/DimQ1/LiteRtLmSharp/blob/master/CHANGELOG.md</PackageReleaseNotes>
 
     <Authors>LiteRtLmSharp contributors</Authors>
     <Company>LiteRtLmSharp</Company>

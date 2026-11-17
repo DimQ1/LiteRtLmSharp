@@ -27,9 +27,9 @@
 LLM inference (e.g. Gemma) via P/Invoke over its C API, with native binaries distributed per-RID as
 NuGet packages (LLamaSharp-style). Status: **stable (1.x)**.
 
-> **DimQ1 fork:** use **1.5.0-dimq1.1** from
+> **DimQ1 fork:** use **1.5.0-dimq1.2** from
 > `https://nuget.pkg.github.com/DimQ1/index.json` (authenticated read) or the
-> [public release packages](https://github.com/DimQ1/LiteRtLmSharp/releases/tag/v1.5.0-dimq1.1).
+> [public release packages](https://github.com/DimQ1/LiteRtLmSharp/releases/tag/v1.5.0-dimq1.2).
 > This build integrates the maintainer's reviewed PR 15 changes and upgrades the native runtime to
 > LiteRT-LM 0.19.1 / C API 1.0.0. Always update managed and runtime packages together. Older native
 > binaries are ABI-incompatible and rejected by the loader. See [the upgrade guide](docs/fork-updates.md).
@@ -51,8 +51,8 @@ package ships once on-device validation lands.</sub>
 ## Quick start
 
 ```xml
-<PackageReference Include="LiteRtLmSharp" Version="1.5.0-dimq1.1" />
-<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.5.0-dimq1.1" />
+<PackageReference Include="LiteRtLmSharp" Version="1.5.0-dimq1.2" />
+<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.5.0-dimq1.2" />
 <!-- or LiteRtLmSharp.runtime.linux-x64 / linux-arm64 / android-arm64 / android-x64 (emulator) / osx-arm64, per target -->
 ```
 
@@ -61,7 +61,7 @@ version number**. Which LiteRT-LM native build each release wraps:
 
 | LiteRtLmSharp | LiteRT-LM native |
 |---|---|
-| 1.5.0-dimq1.1 (fork) | v0.19.1, C API 1.0.0 |
+| 1.5.0-dimq1.2 (fork) | v0.19.1, C API 1.0.0 |
 | 1.4.0-dimq1.1 (older fork API) | v0.18.0, pre-1.0 C API |
 | 1.3.0 | v0.18.0 (Google's official prebuilts) |
 | 1.2.0 | v0.16.0 (Google's official C API prebuilts) |

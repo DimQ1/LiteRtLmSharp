@@ -2,10 +2,15 @@
 
 This fork publishes NuGet packages to GitHub Packages and mirrors the same files in public GitHub
 releases. It does not publish to nuget.org or change the maintainer's `pr/engine-improvements` branch.
-Use suffixed versions such as `1.5.0-dimq1.1`, never an upstream stable version for a different build.
+Use suffixed versions such as `1.5.0-dimq1.2`, never an upstream stable version for a different build.
 
-## What changed in 1.5.0-dimq1.1
+## What changed in 1.5.0-dimq1.2
 
+- Windows metadata reads use ASCII short aliases for non-ASCII paths. The runtime mixes UTF-8 file
+  inspection and narrow stream reads; passing ANSI or UTF-8 directly fixes only one layer. If the
+  volume provides no ASCII alias, the error explicitly asks for an ASCII model-storage path.
+- LoRA isolation is fixed in 0.19.1 and covered by model-backed tests, rather than expecting the old
+  engine-wide adapter bug.
 - Reviewed managed changes through upstream PR 15 commit `05b2d9f`: per-engine multi-engine opt-in,
   sampler mapping, safe engine lifetime, cached counts, cancellation state and connector fixes.
 - Official LiteRT-LM **0.19.1**, **C API 1.0.0**. LiteRT is embedded in the native library; replacing a

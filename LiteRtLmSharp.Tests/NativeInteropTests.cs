@@ -1909,8 +1909,7 @@ public sealed class LoraTextAdapterTests
     }
 
     /// <summary>An adapter changes the deterministic (seed-0 default sampling) continuation of the same prompt,
-    /// and two different adapters change it differently. Each adapter gets an engine of its own, because the
-    /// runtime applies an adapter to the whole engine (pinned below). No explicit sampler: the CPU sampler
+    /// and two different adapters change it differently. No explicit sampler: the CPU sampler
     /// factory implements only TopP and the default sampling is deterministic (see <c>DecodingModelTests</c>).</summary>
     [SkippableFact]
     public void Lora_ValidTextAdapter_IsAppliedAndChangesGeneration()
@@ -1934,14 +1933,11 @@ public sealed class LoraTextAdapterTests
     }
 
     /// <summary>
-    /// PINS AN UPSTREAM LIMITATION (LiteRT-LM v0.18.0): the adapter applies to the engine, not to its
-    /// conversation. After a conversation with the adapter has generated, a new conversation WITHOUT one
-    /// still generates the adapted text. The control first shows that generation without an adapter repeats
-    /// across conversations on this bundle. If this starts failing, upstream made adapters per conversation:
-    /// update the LoraRank / LoraPath docs and docs/engine-tuning.md.
+    /// LiteRT-LM v0.19.1 restores base weights for a conversation without an adapter. Earlier runtimes
+    /// left the adapter on the whole engine after its conversation was disposed.
     /// </summary>
     [SkippableFact]
-    public void Lora_AdapterStaysOnTheEngine_AfterItsConversation()
+    public void Lora_ShouldRestoreBaseWeights_AfterItsConversation()
     {
         Skip.If(Artifacts() is null, MissingArtifacts);
         var (loraModel, ones, _, _) = Artifacts()!.Value;
@@ -1954,35 +1950,33 @@ public sealed class LoraTextAdapterTests
         string afterwards = Generate(engine, adapter: null);
 
         Assert.NotEqual(baseline, adapted);
-        Assert.Equal(adapted, afterwards);
+        Assert.Equal(baseline, afterwards);
     }
 
     /// <summary>
-    /// PINS AN UPSTREAM LIMITATION (LiteRT-LM v0.18.0): while a conversation with an adapter exists, a send
-    /// on a conversation without one fails with INTERNAL ("No LoRA ID is set"), blocking or streamed.
+    /// Base and adapted conversations can coexist in v0.19.1; both blocking and streamed base sends
+    /// must keep the baseline reply even after an adapted conversation generated.
     /// </summary>
     [SkippableFact]
-    public async Task Lora_SendWithoutAdapter_FailsWhileAnAdapterConversationExists()
+    public async Task Lora_BaseConversation_ShouldRemainIndependentOfALiveAdapter()
     {
         Skip.If(Artifacts() is null, MissingArtifacts);
         var (loraModel, ones, _, _) = Artifacts()!.Value;
         LiteRtEngine.SetMinLogLevel(3);
         using var engine = LoadLoraEngine(loraModel);
+        string baseline = Generate(engine, adapter: null);
         using var plain = engine.CreateConversation(new LiteRtConversationOptions { MaxOutputTokens = 16 });
         using var adapted = engine.CreateConversation(new LiteRtConversationOptions { LoraPath = ones, MaxOutputTokens = 16 });
 
-        var ex = Assert.Throws<LiteRtException>(() => plain.Send(Prompt));
-        Assert.Equal(LiteRtStatusCode.Internal, ex.StatusCode);
-        Assert.Contains("LoRA", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(baseline, plain.Send(Prompt).Text);
+        Assert.NotEqual(baseline, adapted.Send(Prompt).Text);
 
-        // A fresh conversation: the one that just failed reports its failed task instead of the reason.
         using var streamedPlain = engine.CreateConversation(new LiteRtConversationOptions { MaxOutputTokens = 16 });
-        var streamed = await Assert.ThrowsAsync<LiteRtException>(async () =>
-        {
-            await foreach (var _ in streamedPlain.SendStreamingAsync(Prompt)) { }
-        });
-        Assert.Equal(LiteRtStatusCode.Internal, streamed.StatusCode);
-        Assert.Contains("LoRA", streamed.Message, StringComparison.Ordinal);
+        var streamed = new System.Text.StringBuilder();
+        await foreach (var chunk in streamedPlain.SendStreamingAsync(Prompt))
+            if (chunk.Kind == LiteRtStreamChunkKind.Answer)
+                streamed.Append(chunk.Text);
+        Assert.Equal(baseline, streamed.ToString());
     }
 
     /// <summary>

@@ -343,12 +343,10 @@ public sealed record LiteRtEngineOptions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The adapter applies to the whole engine, not to one conversation (LiteRT-LM v0.18.0, measured on
-    /// CPU with upstream's LoRA test bundle): after a conversation with
-    /// <see cref="LiteRtConversationOptions.LoraPath"/> has generated, conversations without an adapter on
-    /// the same engine generate with it too, and while a conversation with an adapter exists, a send on one
-    /// without it fails with <see cref="LiteRtStatusCode.Internal"/>. Use one adapter per engine, and reload
-    /// the engine to switch adapters or to return to the base model.
+    /// With native v0.19.1, base and adapted conversations are independent: sending without an adapter
+    /// restores base weights, including while an adapted conversation exists (verified on the CPU with
+    /// upstream's LoRA test bundle). Native v0.18.0 applied an adapter engine-wide; this limitation no
+    /// longer applies to the pinned runtime.
     /// </para>
     /// <para>
     /// The published Gemma 4 bundles carry no LoRA slots (google-ai-edge/LiteRT-LM#3173): an adapter is
@@ -728,8 +726,7 @@ public sealed record LiteRtConversationOptions
     /// <remarks>
     /// The native side opens the file when the conversation is created, so a missing or unreadable path
     /// fails fast with <see cref="LiteRtException"/> at <see cref="LiteRtEngine.CreateConversation"/>,
-    /// not silently at first send. Despite the per-conversation setting, the runtime applies the adapter to
-    /// the whole engine: see <see cref="LiteRtEngineOptions.LoraRank"/> for what that means and for the
+    /// not silently at first send. See <see cref="LiteRtEngineOptions.LoraRank"/> for the tested isolation and the
     /// published Gemma 4 bundles, which accept an adapter without effect (google-ai-edge/LiteRT-LM#3173).
     /// Maps to the C API <c>session_config_set_lora_path</c>.
     /// </remarks>

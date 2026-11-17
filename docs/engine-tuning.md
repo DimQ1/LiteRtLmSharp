@@ -192,7 +192,12 @@ Loading a low-rank adaptation on top of a LoRA-enabled base model has two layers
   which is opened when the conversation is created, so a bad path **fails fast** with `LiteRtException`
   at `CreateConversation`, not mid-generation.
 
-Requires a LoRA-enabled model. What the runtime does at v0.18.0, measured on CPU with upstream's LoRA test
+The pinned v0.19.1 runtime isolates base and adapted conversations on CPU: after an adapter send,
+a conversation without an adapter restores base weights, including while the adapted conversation
+still exists. The model tests verify blocking and streamed base replies against their baseline.
+
+The following are historical v0.18.0 measurements, superseded for LoRA isolation by v0.19.1:
+What the runtime did at v0.18.0, measured on CPU with upstream's LoRA test
 bundle and its rank-32 adapter:
 
 - **The adapter changes generation**, deterministically (the v0.14.0 and v0.15.0 runtimes rejected every

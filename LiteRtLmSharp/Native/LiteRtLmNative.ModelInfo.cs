@@ -7,8 +7,8 @@ namespace LiteRtLmSharp.Native;
 internal static unsafe partial class LiteRtLmNative
 {
     /// <summary>Opens a model file for capability queries; null when the file cannot be opened. The path is
-    /// a null-terminated narrow string that the native side passes to <c>std::ifstream</c>: build it with
-    /// <see cref="NarrowPath.Encode"/>, not as plain UTF-8.</summary>
+    /// null-terminated. Use <see cref="NarrowPath.Encode"/>: the Windows loader needs an ASCII alias
+    /// for non-ASCII paths because its file-inspection and stream-reading layers use different encodings.</summary>
     internal static nint litert_lm_loaded_file_create(byte* litertlm_path)
     {
         nint result = default;

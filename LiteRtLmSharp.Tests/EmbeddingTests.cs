@@ -60,20 +60,6 @@ public class EmbeddingValidationTests
         }
     }
 
-    /// <summary>Off Windows the narrow native API takes UTF-8; plain ASCII passes through everywhere.</summary>
-    [Fact]
-    public void NarrowPath_EncodesAsciiAndUtf8Paths()
-    {
-        byte[] ascii = Native.NarrowPath.Encode("/models/model.litertlm", out bool asciiOpens);
-        Assert.True(asciiOpens);
-        Assert.Equal("/models/model.litertlm\0"u8.ToArray(), ascii);
-        if (!OperatingSystem.IsWindows())
-        {
-            byte[] utf8 = Native.NarrowPath.Encode("/modelos-José/m.litertlm", out bool opens);
-            Assert.True(opens);
-            Assert.Equal("/modelos-José/m.litertlm\0"u8.ToArray(), utf8);
-        }
-    }
 }
 
 /// <summary>
@@ -478,13 +464,15 @@ public sealed class EmbeddingModelTests(ITestOutputHelper output)
 
     /// <summary>The metadata reader opens a path with non-ASCII characters (on Windows the native side reads
     /// paths in the ANSI code page). Uses the small LoRA test bundle next to LITERTLM_TEST_MODEL when present.</summary>
-    [SkippableFact]
-    public void ModelInfo_ReadsAPathWithNonAsciiCharacters()
+    [SkippableTheory]
+    [InlineData("modelos-José")]
+    [InlineData("\u6a21\u578b-\u043c\u043e\u0434\u0435\u043b\u044c")]
+    public void ModelInfo_ReadsAPathWithNonAsciiCharacters(string folder)
     {
         Skip.If(string.IsNullOrEmpty(ChatModel) || !File.Exists(ChatModel), "Set LITERTLM_TEST_MODEL to run.");
         string small = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(ChatModel!))!, "test_lm_lora.litertlm");
         Skip.If(!File.Exists(small), "Place test_lm_lora.litertlm next to LITERTLM_TEST_MODEL to run.");
-        string dir = Path.Combine(Path.GetTempPath(), $"modelos-José-{Guid.NewGuid():N}");
+        string dir = Path.Combine(Path.GetTempPath(), $"{folder}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
         try
         {
