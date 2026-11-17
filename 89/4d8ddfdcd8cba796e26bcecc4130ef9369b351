@@ -1,0 +1,51 @@
+CHANGELOG.md
+  s_0b812487364c9b::t_00686db8bb4777 9-17
+Directory.Build.props
+  s_0b812487364c9b::t_5cc0260fc046d0 11,15
+LiteRtLmSharp.Tests/NativeInteropTests.cs
+  s_0b812487364c9b::t_ea7dafa4e1fd2a 1912,1936-1937,1940,1953,1957-1958,1961,1967,1971-1972,1975-1979
+LiteRtLmSharp/LiteRtEngineOptions.cs
+  s_0b812487364c9b::t_be5ba47255ae60 346-349,729
+README.md
+  s_0b812487364c9b::t_c5c731e871d538 30,32,54-55,64
+docs/android.md
+  s_0b812487364c9b::t_1d1ffc422edc51 39-40,42
+docs/extensions-ai.md
+  s_0b812487364c9b::t_bbcf450bf85185 24-26
+docs/index.md
+  s_0b812487364c9b::t_ba608773f6f138 20-21
+docs/packaging.md
+  s_0b812487364c9b::t_1ebd51a5a8ce1c 39-40
+docs/semantic-kernel.md
+  s_0b812487364c9b::t_1c70e5359261b2 20-22
+packaging/nuget-readme.md
+  s_0b812487364c9b::t_77de11f62b8b87 13-14
+LiteRtLmSharp.Tests/EmbeddingTests.cs
+  s_0b812487364c9b::t_6471683bbf9554 467-470,475
+LiteRtLmSharp/LiteRtModelInfo.cs
+  s_0b812487364c9b::t_727d0e21620987 107,117
+LiteRtLmSharp/Native/LiteRtLmNative.ModelInfo.cs
+  s_0b812487364c9b::t_be665be61beb07 10-11
+LiteRtLmSharp/Native/NarrowPath.cs
+  s_0b812487364c9b::t_cfea30365f7aeb 9,12,14-18,20-22,25,28,30-34,36-37,43
+docs/engine-tuning.md
+  s_0b812487364c9b::t_098bf06254312b 195-200
+docs/fork-updates.md
+  s_0b812487364c9b::t_8fd11b96109ad8 5,7,9-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "894d8ddfdcd8cba796e26bcecc4130ef9369b351",
+  "prompts": {},
+  "sessions": {
+    "s_0b812487364c9b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "eeabfda0-8629-4cc5-acae-ada9d99b89ed",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
