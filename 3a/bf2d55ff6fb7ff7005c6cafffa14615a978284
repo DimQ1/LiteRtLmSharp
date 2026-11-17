@@ -1,0 +1,19 @@
+.github/workflows/native-release.yml
+  s_38291a7c304ea3::t_2b4fe59301c16e 271-274
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3abf2d55ff6fb7ff7005c6cafffa14615a978284",
+  "prompts": {},
+  "sessions": {
+    "s_38291a7c304ea3": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "s_38291a7c304ea3",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
