@@ -18,17 +18,17 @@ public sealed class LiteRtEngine : IDisposable
 
     static LiteRtEngine() => NativeLibraryResolver.Initialize();
 
-    // Two LIVE engines in one process is unsupported (creating a second engine while the first
-    // is alive hangs in the native layer). Recreating an engine after disposing the previous one
-    // works — Google's Edge Gallery switches model/backend exactly this way (engine.close() +
-    // new Engine). The process-wide gate (EngineLiveness) is acquired here and released when the
-    // native engine is destroyed (EngineHandle.ReleaseHandle), so a forgotten/GC'd engine also frees
-    // the slot — callers get a clear exception instead of a hang. AllowMultipleEngines lifts the rule
-    // (opt-in, measured on win-x64/linux-x64 only; see its remarks). NOTE: every conversation holds a
+    // One live chat engine per process is the default rule (it dates from self-built v0.13.1
+    // libraries, where a second live engine was reported to hang in the native layer; never reproduced). Recreating an engine after
+    // disposing the previous one works — Google's Edge Gallery switches model/backend exactly this way
+    // (engine.close() + new Engine). Engines loaded with LiteRtEngineOptions.AllowMultipleEngines may
+    // coexist with each other, never with one that did not opt in. The process-wide gate
+    // (EngineLiveness.Default) is acquired here and released when the native engine is destroyed
+    // (EngineHandle.ReleaseHandle), so a forgotten/GC'd engine also frees its slot. Every conversation holds a
     // strong reference to its engine (it needs the tokenizer and context limit for the KV overflow
-    // guard — and finalizing an engine whose native conversations are still alive would be a
-    // use-after-free anyway), so the GC recovery only applies once no conversation objects remain
-    // reachable either. Disposing conversations and the engine remains the contract.
+    // guard), and its native handle holds a reference on the engine's handle, so the native engine is
+    // deleted, and the slot freed, only after its last conversation is gone, whichever is disposed or
+    // finalized first. Disposing conversations and the engine remains the contract.
 
     private LiteRtEngine(EngineHandle engine, bool isMultimodal, int maxNumTokens, bool enableSpeculativeDecoding)
     {
@@ -56,47 +56,13 @@ public sealed class LiteRtEngine : IDisposable
     /// guard is only active when this is known.</summary>
     internal int MaxNumTokens { get; }
 
-    /// <summary>Whether the engine was loaded with a vision/audio encoder enabled (a conversation then
-    /// carries a session config automatically, so a plain <c>CreateConversation()</c> can send media).</summary>
-    internal bool IsMultimodal => _isMultimodal;
-
-    /// <summary>Whether <see cref="Dispose"/> already ran (conversation creation must not reach native code
-    /// through a freed engine handle).</summary>
-    internal bool IsDisposed => _disposed;
-
     /// <summary>
-    /// Opt-in: allow more than one live engine per process. Off by default, which keeps the historical rule
-    /// — a second <see cref="Load"/> while an engine is alive throws <see cref="InvalidOperationException"/>.
+    /// Gets how many chat engines are alive in this process: 0 or 1 unless the live engines were loaded
+    /// with <see cref="LiteRtEngineOptions.AllowMultipleEngines"/>. A <see cref="LiteRtEmbeddingEngine"/> is
+    /// not counted. A disposed engine counts until its last conversation is disposed too, because the native
+    /// engine lives until then.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Set this <b>before</b> the first <see cref="Load"/>. Each engine costs its own KV cache and activation
-    /// memory (about a second engine's worth of RAM for the same model), and generation on two engines runs
-    /// in parallel — unlike conversations of one engine, which the native runtime serializes.
-    /// </para>
-    /// <para>
-    /// Measured with two and three simultaneously live engines on win-x64 (natives v0.13.1, v0.14.0, v0.16.0
-    /// and v0.18.0; CPU and GPU) and on linux-x64 (v0.16.0, CPU + WebGPU→Vulkan): they load, generate in
-    /// parallel and dispose independently in any order, with no hang, no crash and no heap corruption. Not
-    /// validated on Android, macOS or iOS, with two different models, or with vision/audio and speculative
-    /// decoding — the historical rule was introduced after an unreproduced hang in the native layer, and its
-    /// original cause is still unknown, so treat the flag as a desktop/validated-platform feature and gate it
-    /// on free memory (a second gemma-4 E2B engine needs roughly another 2.4 GB).
-    /// </para>
-    /// <para>
-    /// The single-engine rule is restored by setting the property back to <c>false</c>; engines that are
-    /// already alive keep working and are still released correctly (the gate counts live engines either way).
-    /// </para>
-    /// </remarks>
-    public static bool AllowMultipleEngines
-    {
-        get => EngineLiveness.AllowMultiple;
-        set => EngineLiveness.AllowMultiple = value;
-    }
-
-    /// <summary>How many engines are alive in this process right now (0 or 1 unless
-    /// <see cref="AllowMultipleEngines"/> is on).</summary>
-    public static int LiveEngineCount => EngineLiveness.LiveCount;
+    public static int LiveEngineCount => EngineLiveness.Default.LiveCount;
 
     /// <summary>Sets the global minimum log level (0=VERBOSE … 5=FATAL, 1000=SILENT).</summary>
     /// <remarks>Above 5 (SILENT included) LiteRT also stops recording the reason of the errors its status
@@ -109,14 +75,16 @@ public sealed class LiteRtEngine : IDisposable
     public static void SetMinLogLevel(int level) => LiteRtLmNative.litert_lm_set_min_log_level(level);
 
     /// <summary>
-    /// Loads a model and creates the engine. Only ONE engine may be alive at a time
-    /// (a second concurrent engine hangs in the native layer); a <see cref="LiteRtEmbeddingEngine"/>
-    /// does not count. To switch model or backend, dispose every conversation and the engine first,
-    /// then call <see cref="Load"/> again. Set <see cref="AllowMultipleEngines"/> before the first load to
-    /// lift the rule instead (see its remarks for what has been measured).
+    /// Loads a model and creates the engine. By default only ONE chat engine may be alive at a time; a
+    /// <see cref="LiteRtEmbeddingEngine"/> does not count. To switch model or backend, dispose every
+    /// conversation and the engine first, then call <see cref="Load"/> again. To keep several chat engines
+    /// alive, load each of them with <see cref="LiteRtEngineOptions.AllowMultipleEngines"/> (see its remarks
+    /// for what has been measured).
     /// </summary>
     /// <exception cref="ArgumentException">The model file does not exist.</exception>
-    /// <exception cref="InvalidOperationException">Another engine is still alive in this process.</exception>
+    /// <exception cref="InvalidOperationException">Another chat engine is alive in this process, and this
+    /// engine or a live one was loaded without <see cref="LiteRtEngineOptions.AllowMultipleEngines"/>. An engine
+    /// already disposed is still alive while one of its conversations is.</exception>
     /// <exception cref="DllNotFoundException">The native LiteRT-LM library could not be loaded; the
     /// message names the fix (the missing <c>LiteRtLmSharp.runtime.&lt;rid&gt;</c> package, a runtime
     /// package for another architecture, or a missing system library).</exception>
@@ -131,14 +99,22 @@ public sealed class LiteRtEngine : IDisposable
         if (!File.Exists(options.ModelPath))
             throw new ArgumentException($"Model file not found: {options.ModelPath}", nameof(options));
 
-        if (!EngineLiveness.TryAcquire())
-            throw new InvalidOperationException(
-                "Another LiteRtEngine is still alive in this process; a second concurrent engine " +
-                "hangs in the native layer. Dispose the existing engine (and its conversations) " +
-                "first, then load the new model — or set LiteRtEngine.AllowMultipleEngines = true " +
-                "before the first load to run several engines at once (validated on win-x64 and " +
-                "linux-x64; the rule stays in force on the platforms that were never measured).");
+        switch (EngineLiveness.Default.TryAcquire(options.AllowMultipleEngines))
+        {
+            case EngineAdmission.NewEngineNotOptedIn:
+                throw new InvalidOperationException(
+                    "Another LiteRtEngine is still alive in this process, and this engine was loaded without " +
+                    "LiteRtEngineOptions.AllowMultipleEngines. Dispose the existing engine (and its " +
+                    "conversations) first, then load the new model, or set AllowMultipleEngines = true on " +
+                    "every engine that should stay alive at the same time.");
+            case EngineAdmission.LiveEngineNotOptedIn:
+                throw new InvalidOperationException(
+                    "A LiteRtEngine loaded without LiteRtEngineOptions.AllowMultipleEngines is still alive in " +
+                    "this process, so no other engine can load next to it, even one that opts in. Dispose it " +
+                    "(and its conversations) first, or load it with AllowMultipleEngines = true as well.");
+        }
 
+        EngineHandle? handle = null;
         try
         {
             // Passing null for vision/audio leaves that modality unconfigured (NULL = "not set" per
@@ -213,17 +189,21 @@ public sealed class LiteRtEngine : IDisposable
                     "corrupt or incomplete model file, or a backend the model does not support: some published " +
                     ".litertlm files carry a backend constraint (for example GPU-only) and refuse to load on CPU.");
 
+            handle = new EngineHandle(enginePtr, options.AllowMultipleEngines);
             return new LiteRtEngine(
-                new EngineHandle(enginePtr),
+                handle,
                 isMultimodal: options.VisionBackend is not null || options.AudioBackend is not null,
                 maxNumTokens: options.MaxNumTokens,
                 enableSpeculativeDecoding: options.EnableSpeculativeDecoding);
         }
         catch
         {
-            // Creation failed before the engine handle took ownership of the slot — release it so a
-            // corrected retry can load.
-            EngineLiveness.Release();
+            // Once the handle exists it owns the slot: disposing it deletes the native engine, then frees the
+            // slot. Before that, release the slot here so a corrected retry can load.
+            if (handle is not null)
+                handle.Dispose();
+            else
+                EngineLiveness.Default.Release(options.AllowMultipleEngines);
             throw;
         }
     }
@@ -321,12 +301,12 @@ public sealed class LiteRtEngine : IDisposable
 
     /// <summary>Counts <paramref name="text"/>'s tokens without materializing the id array — the native
     /// result already carries the count, so this skips the managed copy <see cref="Tokenize"/> pays.
-    /// Used by the KV overflow guard on every measured send.</summary>
+    /// Used by the KV overflow guard on every measured send. It does not check that this object is disposed:
+    /// the calling conversation holds a reference on the native engine, so the guard keeps working on a
+    /// conversation that outlives <see cref="Dispose"/>.</summary>
     /// <exception cref="LiteRtException">The native tokenizer call failed.</exception>
     internal int CountTokens(string text)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
         NativeError.Clear();
         nint resultPtr = LiteRtLmNative.litert_lm_engine_tokenize(_engine.Ptr, text);
         if (resultPtr == nint.Zero)
@@ -403,21 +383,23 @@ public sealed class LiteRtEngine : IDisposable
             nint unionPtr = LiteRtLmNative.litert_lm_token_unions_get_token_at(handle.Ptr, i);
             if (unionPtr == nint.Zero)
                 continue;
-            // get_token_at hands back a NEW token union that the caller must delete.
-            using var unionHandle = new TokenUnionHandle(unionPtr);
-            stops.Add(LiteRtTokenUnion.FromNative(unionHandle.Ptr));
+            // C API 1.0.0 borrows each token from the collection; only the collection is disposed.
+            stops.Add(LiteRtTokenUnion.FromNative(unionPtr));
         }
         return stops;
     }
 
     /// <summary>Disposes the engine, freeing the native model weights and releasing the process-wide
-    /// one-engine slot so another model can be loaded. Dispose every conversation first.</summary>
+    /// one-engine slot so another model can be loaded. Dispose every conversation first: while one of them is
+    /// alive, the weights and the slot stay in use, <see cref="Load"/> refuses another engine unless both opted
+    /// in, and the last conversation releases them when it is disposed.</summary>
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
         // Disposing the handle deletes the native engine and frees the one-engine slot
-        // (EngineHandle.ReleaseHandle → EngineLiveness.Release), so a new engine can be loaded.
+        // (EngineHandle.ReleaseHandle → EngineLiveness.Default.Release), so a new engine can be loaded. A
+        // conversation still alive holds a reference on the handle and defers both until it is disposed.
         _engine.Dispose();
     }
 }

@@ -53,6 +53,11 @@ if [ "$kind" = android ]; then
   # GPU sampling falls back to CPU (or fails, as the self-built v0.15.0 set did, LiteRT-LM#3135). The
   # x86_64 build targets the emulator, which has no OpenCL, so a missing sampler there only warns.
   defined=$(readelf --dyn-syms -W "$lib" | awk '$7 != "UND" {print $8}')
+  if grep -qx 'litert_lm_speculative_decoding_config_create' <<< "$defined"; then
+    # C API 1.0.0 hides every non-litert_lm_* symbol, including statically linked samplers.
+    # Export absence no longer establishes GPU support; model tests must exercise the backend.
+    echo "C API 1.0.0: sampler symbols are private; GPU execution requires a device test."
+  else
   for sym in LiteRtTopKOpenClSampler_Create LiteRtTopKOpenClSampler_CanHandleInput LiteRtTopKOpenClSampler_SetInferenceFuncAndInputTensors; do
     if ! grep -qx "$sym" <<< "$defined"; then
       if [ "$machine" = AArch64 ]; then
@@ -63,6 +68,7 @@ if [ "$kind" = android ]; then
     fi
   done
   echo "OpenCL TopK sampler check done."
+  fi
   # Google Play's 16 KB page-size requirement: every PT_LOAD segment aligned to 0x4000.
   bad=$(readelf -lW "$lib" | awk '$1 == "LOAD" && $NF != "0x4000" && $NF != "0x10000"' || true)
   if [ -n "$bad" ]; then

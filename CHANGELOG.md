@@ -6,6 +6,116 @@ LiteRT-LM native version it wraps (see the compatibility table in the [README](R
 managed `LiteRtLmSharp` package and every `LiteRtLmSharp.runtime.<rid>` package share one version and
 are published together.
 
+## [1.5.0-dimq1.1] - 2026-11-17
+
+### Native runtime upgrade
+
+- LiteRT-LM **v0.19.1**, official C API **1.0.0** binaries as one versioned set. LiteRT is embedded in
+  this runtime; no independently substituted LiteRT library is shipped.
+- All 165 native imports match the new status/out-parameter ABI, including `size_t` counters, the
+  by-value constraint-provider enum and borrowed stop-token ownership. Failed setters and scalar readers
+  surface the returned status; optional metadata maps only the documented `NotFound` case to absence.
+- The loader rejects pre-1.0 C API binaries before invoking an incompatible function signature.
+- `scripts/check-capi.py` verifies every imported signature against the pinned upstream headers.
+
+### Managed API integration
+
+The reviewed changes below come from the maintainer's commits through `05b2d9f` on PR 15. This fork does
+not push to that PR branch. Compared with this fork's earlier packages, `Snapshot`/`Resume`, `NearGreedy`
+and `LiteRtSamplerNotSupportedException` are removed. A clone checkpoint restarts a cut turn; applications
+that have already displayed partial text must retain their own request/history/partial answer for replay.
+GPU clone retries remain subject to google-ai-edge/LiteRT-LM#4394.
+
+Most of this release comes from a contribution by @DimQ1
+([#15](https://github.com/OrihuelaConde/LiteRtLmSharp/pull/15)), who measured where the engine-usage API fell
+short for an application that shares one model between live translation, chat and background jobs.
+
+### Added
+
+- **Several chat engines in one process.** `LiteRtEngineOptions.AllowMultipleEngines` lets an engine stay
+  alive next to other chat engines. A load next to live engines succeeds only when the new engine and every
+  live one opted in, so code that loads an engine without the setting keeps the one-engine guarantee.
+  `LiteRtEngine.LiveEngineCount` reports how many chat engines are alive. Engines only run in parallel on a desktop
+  CPU, and each one holds its own memory: on Windows, about 2.3 GB of committed memory per gemma-4 E2B engine on
+  CPU. The API reference for `AllowMultipleEngines` lists the measurements.
+- **`LiteRtConversation.TokenCountCached`**, a token count that never waits. The native `TokenCount` reader
+  goes through the engine, so it waits behind a generation in flight on any conversation of that engine. The
+  cache is refreshed after every completed send, and it and `IsContextFull` can be read from another thread
+  while a send is in flight.
+- **`LiteRtConversation.IsCancelled`** tells whether a send on the conversation was cut short (a cancelled
+  send, an abandoned stream, or `CancelProcess()` during a send), after which the runtime answers `CANCELLED`
+  to every later send. A stream that failed during generation counts too.
+- **Keyed chat clients.** `AddKeyedLiteRtChatClient` registers several models side by side, for example one per
+  agent. Keys with equal options share one engine. See
+  [Register several models](https://orihuelaconde.github.io/LiteRtLmSharp/extensions-ai.html#register-several-models).
+
+### Changed
+
+- **`Greedy` and `TopK` work on the CPU and GPU backends.** The LiteRT-LM CPU backend builds only TopP
+  samplers: a `Greedy` or `TopK` conversation failed its first send with `UNIMPLEMENTED: Sampler type: N`, and
+  after a TopP send it was accepted but did not decode as named. The GPU backend runs every type as TopP. The
+  binding now sends `Greedy` as TopP with `TopK = 1` (exact argmax) and `TopK` as TopP with `TopP = 1`,
+  keeping the temperature and seed. On the GPU this changes the output of existing `Greedy` and `TopK`
+  callers, which got sampled text before.
+- **`IsContextFull` reads the cached token count** (see `TokenCountCached`), so it never waits behind a
+  generation on another conversation. It is exact after each completed send.
+- **`LiteRtConversation.Clone()` throws `InvalidOperationException` for a conversation whose send was cut
+  short** or whose stream failed: the runtime would return an empty clone that also answers `CANCELLED`. To
+  continue after a cancellation, take the clone before the send. The
+  [conversation-state guide](https://orihuelaconde.github.io/LiteRtLmSharp/conversation-state.html#continue-after-a-cancellation) shows how, and covers a
+  runtime problem on the GPU backend when a clone's first send repeats a message
+  ([LiteRT-LM #4394](https://github.com/google-ai-edge/LiteRT-LM/issues/4394)).
+- **A cancelled or failed stateful send no longer ends the conversation.** Before, `LiteRtChatClient` disposed the
+  conversation and its `ConversationId` stopped working. Now it goes back to a checkpoint taken before the turn: the
+  id keeps working and the whole turn, tool calls included, is discarded, so send the message again. Agent Framework
+  relies on this, because it keeps a session's id after a failed run. Some cases still end the conversation,
+  including its first turn and conversations with constrained decoding. On conversations with constrained decoding,
+  the new `LiteRtStatefulConversationOptions.CheckpointConstrainedConversations` keeps the id after the first turn,
+  at a cost of about a second per turn. See [Cancelled and failed sends](https://orihuelaconde.github.io/LiteRtLmSharp/extensions-ai.html#cancelled-and-failed-sends).
+- **A stateful stream you stop reading after the reply ended keeps its turn.** Before, any stream not read to its
+  end ended the conversation. In the stateful mode, a reply's tool calls now reach the stream together when the
+  reply ends, after any text in it, so stopping at them keeps the turn.
+- **Each Semantic Kernel `serviceId` gets its own chat client and, from options, its own engine.** If your service
+  ids use different options, set `AllowMultipleEngines` on each of them, or the first use of the second service
+  throws `InvalidOperationException`. Before, every `serviceId` wrapped the one client and engine registered without
+  a key, so a second model silently ran on the first engine. Equal options still share one engine, and a
+  `LiteRtEngine` you registered without a key before the `serviceId` still serves them. A `serviceId` also
+  no longer inherits the model id, template and stateful settings of an earlier registration, or goes through an
+  `IChatClient` registered without a key. A service registered from options loads its engine on its first call, not
+  when it is resolved, so a bad path fails at that call unless you set `eager`. See
+  [Register several models](https://orihuelaconde.github.io/LiteRtLmSharp/semantic-kernel.html#register-several-models).
+- **A conflicting chat registration throws.** Registering a chat client again, with or without a Semantic Kernel
+  `serviceId`, with a different engine or different options throws `InvalidOperationException`. Before, the second
+  registration was silently ignored. The same applies to a key registered with the new `AddKeyedLiteRtChatClient`.
+  This includes a registration without a key after a `serviceId`, because the first `serviceId`
+  is also registered without a key, so register the one without a key first. The same engine or equal options again
+  still does nothing.
+- **Chat clients over one engine take turns.** Each `LiteRtChatClient` used to serialize only its own calls, so two
+  clients over one engine could put two generations in flight on it, which the runtime does not support. Now they wait
+  for each other. An open stream counts until you read it to the end or dispose it, so calling another client over
+  the same engine from inside the loop that reads the stream waits forever.
+
+### Fixed
+
+- **Disposing an engine before its conversations no longer frees the native engine under them.** Each
+  conversation now keeps its engine's native object alive, so the native engine and its one-engine slot are
+  released when the last conversation is disposed. Before, a conversation disposed or finalized after its
+  engine deleted its native session through a freed engine. Until that last conversation is disposed,
+  `LiveEngineCount` counts the engine and, by default, `LiteRtEngine.Load` refuses another one, so an app that
+  switches models has to dispose its conversations first, as the docs always asked.
+- **`History` is documented as prefilled by the conversation's first send**, not when the conversation is
+  created: right after `CreateConversation`, `TokenCount` still reads 0.
+- **Concurrency guidance.** Interleaving several conversations of one engine works from LiteRT-LM v0.15.0,
+  where the state loss of upstream #2807 is fixed; two generations in flight on one engine stay unsupported.
+  The README notes that the v0.13.x and v0.14.0 libraries (1.1.x and older) lose state when conversations are
+  interleaved, and do not return from a send after a cancellation.
+- **Stateful-mode memory.** On a model with a dynamic context such as gemma-4 E2B, a live conversation's KV
+  state grows with the tokens it has used (about 36 MB for 2,300 tokens on a desktop CPU); a model with a
+  static context keeps a full-size cache per live conversation.
+- **Speculative decoding and the sampler.** The docs said speculative decoding preserves the output
+  distribution. In the LiteRT-LM v0.18.0 and v0.18.1 sources it verifies the drafted tokens greedily, so only
+  the first token of each turn uses the conversation's sampler.
+
 ## [1.4.0-dimq1.1] — 2026-11-17
 
 > **The same packages and sources as [1.4.0](#140--2026-10-12), under a version that cannot collide.**
@@ -77,10 +187,6 @@ are published together.
 
 
 ## [1.3.0] — 2026-10-12
-
-> Native binaries are Google's official **LiteRT-LM v0.18.0** C API prebuilts (see *Changed* below).
-> The engine-usage improvements this fork first shipped alongside this release are listed under
-> [1.4.0](#140--2026-10-12), together with the documentation corrections they required.
 
 ### Changed
 

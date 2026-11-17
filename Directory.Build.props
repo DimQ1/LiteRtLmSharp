@@ -8,17 +8,17 @@
     the README compatibility table maps each release to the LiteRT-LM tag it was built against.
   -->
   <PropertyGroup>
-    <Version>1.4.0-dimq1.1</Version>
+    <Version>1.5.0-dimq1.1</Version>
     <!-- LiteRT-LM release tag whose official C API prebuilts the native packages ship (native-release.yml input). -->
-    <LiteRtLmVersion>v0.18.0</LiteRtLmVersion>
+    <LiteRtLmVersion>v0.19.1</LiteRtLmVersion>
     <!-- Shown on the nuget.org version page; update each release. Full history in CHANGELOG.md. -->
-    <PackageReleaseNotes>1.4.0-dimq1.1: the fork's build of the engine-usage improvements, now under a prerelease-suffixed version so it can never resolve to upstream's own 1.4.0 (a different assembly under the same id; the maintainer is preparing that release from the same pull request, #15). Same sources as the fork's 1.4.0 build and the same native binaries (LiteRT-LM v0.18.0). Same native binaries as upstream 1.3.0 (LiteRT-LM v0.18.0, Google's official C API prebuilts) and the same embedding, vision and speculative-decoding work, plus: LiteRtEngine.AllowMultipleEngines (opt-in, several live engines measured on win-x64/linux-x64), non-blocking LiteRtConversation.TokenCountCached, LiteRtConversation.Snapshot()/Resume() for continuing a conversation that was cancelled or evicted, LiteRtSamplerParams.NearGreedy plus a readable LiteRtSamplerNotSupportedException for the CPU backends that implement TopP only, and corrected documentation (History is prefilled by the first send, not by creation; interleaving vs. concurrent generation; the multi-conversation hazards of native v0.13/v0.14). ActivationDataType now defaults to Float32 (F16 corrupted structured output on the GPUs we measured). Linux no longer needs libvulkan1 for the CPU backend.     Behavior changes: EnableYnnpack fails off linux-arm64, a missing cache directory fails engine creation, and a visual token budget above the per-image maximum fails image sends. The managed assembly requires the same-version runtime packages (LiteRT-LM $(LiteRtLmVersion)). Full notes: https://github.com/DimQ1/LiteRtLmSharp/blob/master/CHANGELOG.md</PackageReleaseNotes>
+    <PackageReleaseNotes>1.5.0-dimq1.1: fork release on LiteRT-LM v0.19.1 and C API 1.0.0. All bound functions use the status/out-parameter ABI with checked size_t conversions and updated ownership; incompatible older native binaries are rejected before use. Includes the maintainer's reviewed changes from PR 15: per-engine AllowMultipleEngines, working Greedy/TopK mapping, refreshed TokenCountCached, IsCancelled, safe engine/conversation lifetime and connector fixes. Breaking from earlier fork packages: Snapshot/Resume, NearGreedy and LiteRtSamplerNotSupportedException are removed; keep application-owned text history for partial streamed continuation. Managed and runtime packages must use the same version. Full notes: https://github.com/DimQ1/LiteRtLmSharp/blob/master/CHANGELOG.md</PackageReleaseNotes>
 
     <Authors>LiteRtLmSharp contributors</Authors>
     <Company>LiteRtLmSharp</Company>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/OrihuelaConde/LiteRtLmSharp</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/OrihuelaConde/LiteRtLmSharp</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/DimQ1/LiteRtLmSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DimQ1/LiteRtLmSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>litert;litert-lm;llm;gemma;embeddings;on-device;inference;ai;maui</PackageTags>
     <!-- Every package embeds a dedicated concise README (shown on nuget.org, which renders no

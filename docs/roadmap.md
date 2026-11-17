@@ -1,8 +1,7 @@
 # Project status and roadmap
 
-Last updated: 2026-10-07 (v0.18.0 cycle toward 1.3.0: repin, linux-arm64/android-x64, native error
-reporting, embeddings and model info merged to master (#12, #13); release pending; latest on nuget.org:
-1.2.0, LiteRT-LM v0.16.0). Source of truth for "what's done and what's pending".
+Last updated: 2026-10-12 (1.3.0 published: LiteRT-LM v0.18.0, embeddings, model metadata, native failure
+reasons, linux-arm64 and android-x64 runtime packages; latest on nuget.org: 1.3.0, LiteRT-LM v0.18.0). Source of truth for "what's done and what's pending".
 
 ## Status per platform
 
@@ -10,9 +9,9 @@ reporting, embeddings and model info merged to master (#12, #13); release pendin
 |---|:---:|:---:|:---:|:---:|---|
 | win-x64 | ✅ | ✅ | ✅ | ✅ | real hardware (+ CI, CPU) |
 | linux-x64 | ✅ | ✅ | ✅ | ✅ | real hardware with the self-built v0.13.1 set (CPU + GPU); official prebuilts: Docker + CI (CPU) |
-| linux-arm64 | ✅ | ⏳ 1.3.0 | ✅ | — | CI (ubuntu-24.04-arm, CPU): full suite green since 2026-10-07, YNNPACK included; no arm64 GPU on hand |
+| linux-arm64 | ✅ | ✅ 1.3.0 | ✅ | — | CI (ubuntu-24.04-arm, CPU): full suite green since 2026-10-07, YNNPACK included; no arm64 GPU on hand |
 | android-arm64 | ✅ | ✅ | ✅ | ✅ | real device (Moto G100, Adreno 650; v0.18.0 from the packed 1.3.0 packages, 2026-10-06) |
-| android-x64 | ✅ | ⏳ 1.3.0 | ✅ | — | x86_64 emulator (API 35): chat and embeddings on CPU from the packed packages; emulators expose no GPU |
+| android-x64 | ✅ | ✅ 1.3.0 | ✅ | — | x86_64 emulator (API 35): chat and embeddings on CPU from the packed packages; emulators expose no GPU |
 | osx-arm64 | ✅ | ✅ | ✅ | ✅ | CI only (macos-15; GPU via WebGPU); v0.18.0 green on CPU and GPU since 2026-10-07 |
 | ios-arm64 | ✅ | ⏳ | — | — | CI build/link only (no device); on-device runtime + publish pending |
 
@@ -180,7 +179,7 @@ remaining 25 unbound functions are unchanged: the raw Session API (13), response
 
 ## Actionable next steps (suggested order)
 
--4. **v0.18.0 CYCLE → 1.3.0 — IN PROGRESS (started 2026-10-06).** Upstream v0.18.0 (2026-10-06) ships
+-4. **v0.18.0 CYCLE → 1.3.0 — CLOSED: 1.3.0 PUBLISHED 2026-10-12 (started 2026-10-06).** Upstream v0.18.0 (2026-10-06) ships
    EmbeddingGemma 2 (multimodal embeddings, Matryoshka truncation), a model-info API, a thread-local
    error reporter and four engine/session settings; v0.17.0/v0.17.1 (skipped) brought local-attention
    memory work, Metal residency and Gemma 4 12B extensions. **The C API zip is not published for
@@ -244,8 +243,11 @@ remaining 25 unbound functions are unchanged: the raw Session API (13), response
      filled). The iOS package check
      needed the .NET-for-iOS workload and Xcode pinned as a pair (workload set 10.0.400.1 with Xcode 26.6:
      the latest workload set asked for Xcode 27, which the macos-26 image lacks).
-   - **Release 1.3.0** with the maintainer's GO. Before publishing, the maintainer chose to wait until the
-     afternoon of 2026-10-07 in case Google attaches the C API zip to v0.18.0 after all.
+   - **Release 1.3.0** with the maintainer's GO (2026-10-12). The maintainer first waited in case Google
+     attached the C API zip to v0.18.0 after all; six days after the release it had not (v0.17.0 and
+     v0.17.1 never got one either), so 1.3.0 ships the wheel-sourced libraries already validated.
+     Published by `pack-nuget.yml` run 38285671351: nine packages (core, Extensions.AI, SemanticKernel and
+     six runtimes; iOS still excluded) and the v1.3.0 GitHub release. Post-publish smoke from nuget.org on win-x64 (2026-10-12, HTTP cache cleared): core chat, `IChatClient`, Semantic Kernel and embeddings on CPU and on GPU (RTX 3080), all green; the restored `LiteRtLm.dll` is byte-identical to the one validated before the release.
 
 -3. **v0.16.0 CYCLE — evaluation of Google's official C API prebuilts DONE (2026-08-12 →
    2026-09-02, branch `capi-prebuilts-probe`); the repin shipped in 1.2.0 (2026-09-05).**
@@ -738,6 +740,9 @@ AOT/trim-clean** (MEAI/SK aren't); the core `LiteRtLmSharp` package keeps its AO
 - **#2572** (our GPU cache bug, fixed in v0.14.0): still no comments; the close-request with our
   verification is pending (draft with the maintainer).
 - **#3173** (LoRA slots in the gemma-4 bundles) and **#2149** (our data posted 2026-09-05): no response.
+- **#3929** (filed 2026-10-12): the EmbeddingGemma 2 task prefixes in the LiteRT-LM guide differ from the
+  model card's, and upstream's own `js/apps/embedding_search` demo uses the model card's pair. Asked
+  which set is canonical. When they answer, align [embeddings.md](embeddings.md), which documents both.
 - **PR #2552** (listing in upstream's bindings table): untouched since June.
 - **Gemma 4 bundles:** the base `.litertlm` files are unchanged (E2B and E4B byte-identical in size to
   ours); the 2026-08-31 E2B commit only added a Tensor G6 variant. **EmbeddingGemma 2** bundles appeared

@@ -75,7 +75,7 @@ jobs:
             $ref = (Select-String -Path Directory.Build.props -Pattern '<LiteRtLmVersion>([^<]+)' | Select-Object -First 1).Matches[0].Groups[1].Value
           }
           $src = '${{ inputs.native_source_repo }}'
-          if (-not $src) { $src = 'OrihuelaConde/LiteRtLmSharp' }
+          if (-not $src) { $src = '${{ github.repository }}' }
           $owner = '${{ inputs.feed_owner }}'
           if (-not $owner) { $owner = '${{ github.repository_owner }}' }
           # A package version is immutable once pushed, so publishing without notes that describe it is
@@ -136,9 +136,13 @@ jobs:
       - name: Build and test (model-free)
         shell: pwsh
         run: |
+          python scripts/check-capi.py --ref $env:NATIVE_REF
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned C API signatures do not match.' }
           dotnet build LiteRtLmSharp.slnx -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
           dotnet test LiteRtLmSharp.Tests/LiteRtLmSharp.Tests.csproj -c Release --no-build `
             --logger "console;verbosity=minimal"
+          if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 
       - name: Pack
         shell: pwsh
@@ -197,8 +201,10 @@ jobs:
           // Touching LiteRtEngine runs the native-library resolver, and SetMinLogLevel is a real
           // P/Invoke: a package whose natives are missing or misplaced fails right here.
           LiteRtEngine.SetMinLogLevel(3);
-          Console.WriteLine($"live engines={LiteRtEngine.LiveEngineCount}, multi-engine={LiteRtEngine.AllowMultipleEngines}");
-          Console.WriteLine($"near-greedy={LiteRtSamplerParams.NearGreedy.Strategy}/{LiteRtSamplerParams.NearGreedy.TopP}/{LiteRtSamplerParams.NearGreedy.Temperature}");
+          Console.WriteLine($"live engines={LiteRtEngine.LiveEngineCount}, multi-engine={new LiteRtEngineOptions { ModelPath = "unused" }.AllowMultipleEngines}");
+          try { LiteRtEngine.SetMinLogLevel(-123); throw new Exception("Native status was ignored."); }
+          catch (LiteRtException ex) when (ex.StatusCode == LiteRtStatusCode.InvalidArgument) { }
+          LiteRtEngine.SetMinLogLevel(3);
           Console.WriteLine("NATIVE_OK");
           '@
           $program | Set-Content (Join-Path $dir 'Program.cs')
@@ -261,7 +267,8 @@ jobs:
           # artifact retention (the feed stays the installable source).
           gh release view "v$env:PKG_VERSION" --repo '${{ github.repository }}' *> $null
           if ($LASTEXITCODE -eq 0) { Write-Host "Release v$($env:PKG_VERSION) exists; leaving it alone."; exit 0 }
-          gh release create "v$env:PKG_VERSION" (Get-ChildItem artifacts/*.nupkg).FullName `
+          $releaseFlags = if ($env:PKG_VERSION.Contains('-')) { @('--prerelease') } else { @() }
+          gh release create "v$env:PKG_VERSION" (Get-ChildItem artifacts/*.nupkg).FullName @releaseFlags `
             --repo '${{ github.repository }}' --target $env:GITHUB_SHA `
             --title "v$env:PKG_VERSION" `
             --notes "Published to the GitHub Packages feed: https://nuget.pkg.github.com/$env:FEED_OWNER/index.json`n`nNative binaries: LiteRT-LM $env:NATIVE_REF (Google's official C API prebuilts)."

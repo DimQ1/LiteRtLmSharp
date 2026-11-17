@@ -18,7 +18,7 @@ concurrency:
 
 env:
   # Keep in sync with Directory.Build.props <LiteRtLmVersion>.
-  NATIVE_REF: v0.18.0
+  NATIVE_REF: v0.19.1
   # Where the native-<NATIVE_REF> release lives, used by the download step below as
   # `vars.NATIVE_ASSETS_REPO || github.repository`. Upstream leaves the variable unset (its own releases
   # are the source); a fork has no release assets of its own, so it sets the repository variable once

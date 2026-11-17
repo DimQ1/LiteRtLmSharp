@@ -45,8 +45,8 @@ internal static partial class NativeLibraryResolver
         {
             string fw = Path.Combine(AppContext.BaseDirectory, "Frameworks", IosFrameworkName + ".framework", IosFrameworkName);
             if (NativeLibrary.TryLoad(fw, out nint fwHandle))
-                return fwHandle;
-            return NativeLibrary.TryLoad(libraryName, assembly, searchPath, out nint def0) ? def0 : nint.Zero;
+                return RequireApiV1(fwHandle);
+            return NativeLibrary.TryLoad(libraryName, assembly, searchPath, out nint def0) ? RequireApiV1(def0) : nint.Zero;
         }
 
         string fileName = GetPlatformFileName(libraryName);
@@ -60,7 +60,7 @@ internal static partial class NativeLibraryResolver
 
             PreloadCompanions(dir, fileName);
             if (NativeLibrary.TryLoad(main, out nint handle))
-                return handle;
+                return RequireApiV1(handle);
             // The file is there but would not load — remember it so the failure message can point at
             // system prerequisites instead of (wrongly) telling the user to install the runtime package.
             foundButFailed = main;
@@ -68,13 +68,26 @@ internal static partial class NativeLibraryResolver
 
         // Fallback to the default OS resolution (e.g. the library is on PATH/LD_LIBRARY_PATH).
         if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out nint def))
-            return def;
+            return RequireApiV1(def);
 
         // Nothing resolved. Throw with an actionable message instead of returning zero, which would
         // surface as a bare "Unable to load DLL" with no hint of the fix.
         throw new DllNotFoundException(foundButFailed is not null
             ? BuildFoundButFailedMessage(foundButFailed)
             : BuildNotFoundMessage(fileName, CandidateDirectories()));
+    }
+
+    private static nint RequireApiV1(nint handle)
+    {
+        if (NativeLibrary.TryGetExport(handle, "litert_lm_speculative_decoding_config_create", out _) &&
+            !NativeLibrary.TryGetExport(handle, "litert_lm_get_last_error_code", out _))
+            return handle;
+
+        NativeLibrary.Free(handle);
+        throw new DllNotFoundException(
+            "This LiteRtLmSharp build requires LiteRT-LM 0.19.1 with C API 1.0.0. " +
+            "An incompatible native library was found. Install the matching LiteRtLmSharp.runtime package; " +
+            "do not mix native binaries from 0.18 or earlier with this managed assembly.");
     }
 
     /// <summary>The RIDs this project publishes a <c>LiteRtLmSharp.runtime.&lt;rid&gt;</c> package for.</summary>

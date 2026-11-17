@@ -38,7 +38,7 @@ on:
       litertlm_version:
         description: 'LiteRT-LM release tag (release tag here = native-<tag>).'
         required: true
-        default: 'v0.18.0'
+        default: 'v0.19.1'
       source:
         description: 'Where the Linux, Windows, Android and macOS libraries come from: the C API zip release asset, the litert-lm-api wheels on PyPI, or auto (the zip when the release has it, else PyPI).'
         type: choice
@@ -47,7 +47,7 @@ on:
       capi_version:
         description: 'C API prebuilt version (source=zip only: the zip name suffix, litert_lm_c_api-<capi_version>.zip).'
         required: false
-        default: '0.1.0'
+        default: '1.0.0'
       pypi_version:
         description: 'litert-lm-api version (source=pypi only; empty = the tag without its leading "v").'
         required: false
@@ -64,15 +64,15 @@ on:
 env:
   UPSTREAM_REPO: google-ai-edge/LiteRT-LM
   # Defaults keep the workflow runnable when an input is left empty.
-  UPSTREAM_TAG: ${{ inputs.litertlm_version || 'v0.18.0' }}
+  UPSTREAM_TAG: ${{ inputs.litertlm_version || 'v0.19.1' }}
   # The jobs read the resolved source (auto -> zip or pypi) from the prepare job.
   SOURCE_INPUT: ${{ inputs.source || 'auto' }}
-  CAPI_ZIP: litert_lm_c_api-${{ inputs.capi_version || '0.1.0' }}.zip
+  CAPI_ZIP: litert_lm_c_api-${{ inputs.capi_version || '1.0.0' }}.zip
   PYPI_VERSION: ${{ inputs.pypi_version }}
   PLATFORMS: ${{ inputs.platforms || 'all' }}
   # Minimum litert_lm_* export count we accept (v0.16.0 ships 144, v0.18.0 212; the check catches a
   # truncated or wrong-architecture binary, not a specific version).
-  MIN_EXPORTS: '140'
+  MIN_EXPORTS: '220'
   # DirectX Shader Compiler runtime for win-x64 (the official DLL's Dawn requires DXC on D3D12 and
   # has no FXC fallback: without dxil.dll the GPU engine fails to create, "DynamicLib.Open: dxil.dll
   # Windows Error: 87"). Pinned by hash; this exact pair was validated on an RTX 3080 (2026-09) and is

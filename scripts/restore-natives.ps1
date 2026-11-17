@@ -14,7 +14,7 @@ Usage:
   pwsh scripts/restore-natives.ps1 -All
 #>
 param(
-    [string]$Version = 'v0.18.0',
+    [string]$Version,
     # One or more RIDs. Validated below rather than with ValidateSet: `pwsh script.ps1 -Rid a,b` runs the
     # script through -File, which passes "a,b" as ONE string, so commas are split here.
     [string[]]$Rid,
@@ -23,7 +23,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repo = 'OrihuelaConde/LiteRtLmSharp'
+$repo = 'DimQ1/LiteRtLmSharp'
+if (-not $Version) {
+    [xml]$props = Get-Content (Join-Path $PSScriptRoot '..\Directory.Build.props') -Raw
+    $Version = [string]$props.Project.PropertyGroup.LiteRtLmVersion
+    if (-not $Version) { throw 'Directory.Build.props has no LiteRtLmVersion.' }
+}
 $assets = @{
     'win-x64'       = 'litertlm-windows_x86_64.tar.gz'
     'linux-x64'     = 'litertlm-linux_x86_64.tar.gz'
@@ -72,7 +77,8 @@ foreach ($r in $Rid) {
     Invoke-WebRequest "$base/$asset" -OutFile $file
 
     $actual = (Get-FileHash -Algorithm SHA256 $file).Hash.ToLower()
-    if ($checksums.ContainsKey($asset) -and $checksums[$asset] -ne $actual) {
+    if (-not $checksums.ContainsKey($asset)) { throw "No checksum published for $asset" }
+    if ($checksums[$asset] -ne $actual) {
         throw "Checksum mismatch for ${asset}: expected $($checksums[$asset]), got $actual"
     }
 

@@ -27,16 +27,12 @@
 LLM inference (e.g. Gemma) via P/Invoke over its C API, with native binaries distributed per-RID as
 NuGet packages (LLamaSharp-style). Status: **stable (1.x)**.
 
-> **Fork note** ([DimQ1/LiteRtLmSharp](https://github.com/DimQ1/LiteRtLmSharp)). This fork publishes its
-> packages to its own GitHub Packages feed (`nuget.pkg.github.com/DimQ1`) and mirrors them as release
-> assets, with the native binaries unchanged (Google's official LiteRT-LM prebuilts). **`1.4.0-dimq1.1`** is
-> upstream 1.3.0 plus the engine-usage improvements proposed upstream as
-> [OrihuelaConde/LiteRtLmSharp#15](https://github.com/OrihuelaConde/LiteRtLmSharp/pull/15), which the
-> maintainer has since reworked towards his own 1.4.0 (a per-engine `AllowMultipleEngines`, `Greedy`/`TopK`
-> sent as `TopP`, a `Clone()` checkpoint instead of `Snapshot()`/`Resume()`). The two are different
-> assemblies, so this fork publishes under a prerelease-suffixed version: pin `1.4.0-dimq1.1` for the fork's
-> build and `1.4.0` for nuget.org's, and a restore can never take one for the other. (The superseded `1.4.0`
-> build of this fork stays published for history.)
+> **DimQ1 fork:** use **1.5.0-dimq1.1** from
+> `https://nuget.pkg.github.com/DimQ1/index.json` (authenticated read) or the
+> [public release packages](https://github.com/DimQ1/LiteRtLmSharp/releases/tag/v1.5.0-dimq1.1).
+> This build integrates the maintainer's reviewed PR 15 changes and upgrades the native runtime to
+> LiteRT-LM 0.19.1 / C API 1.0.0. Always update managed and runtime packages together. Older native
+> binaries are ABI-incompatible and rejected by the loader. See [the upgrade guide](docs/fork-updates.md).
 
 | Platform | Native | NuGet | CPU | GPU | Validated on |
 |---|:---:|:---:|:---:|:---:|---|
@@ -49,15 +45,14 @@ NuGet packages (LLamaSharp-style). Status: **stable (1.x)**.
 | ios-arm64 | ✅ | ⏳ | — | — | pending |
 
 <sub>**CPU / GPU** = inference validated on that backend. macOS GPU runs in CI on the **WebGPU**
-(Dawn→Metal) delegate; the native Metal delegate ships as a real-hardware fallback. linux-arm64 and
-android-x64 got their runtime packages in **1.3.0** and are part of every later release set. The iOS
-runtime package ships once on-device validation lands.</sub>
+(Dawn→Metal) delegate; the native Metal delegate ships as a real-hardware fallback. The iOS runtime
+package ships once on-device validation lands.</sub>
 
 ## Quick start
 
 ```xml
-<PackageReference Include="LiteRtLmSharp" Version="1.4.0-dimq1.1" />
-<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.4.0-dimq1.1" />
+<PackageReference Include="LiteRtLmSharp" Version="1.5.0-dimq1.1" />
+<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.5.0-dimq1.1" />
 <!-- or LiteRtLmSharp.runtime.linux-x64 / linux-arm64 / android-arm64 / android-x64 (emulator) / osx-arm64, per target -->
 ```
 
@@ -66,8 +61,9 @@ version number**. Which LiteRT-LM native build each release wraps:
 
 | LiteRtLmSharp | LiteRT-LM native |
 |---|---|
-| 1.4.0-dimq1.1 | v0.18.0 (Google's official C API prebuilts; this fork: upstream 1.3.0 + the engine-usage improvements) |
-| 1.3.0 | v0.18.0 (Google's official C API prebuilts) |
+| 1.5.0-dimq1.1 (fork) | v0.19.1, C API 1.0.0 |
+| 1.4.0-dimq1.1 (older fork API) | v0.18.0, pre-1.0 C API |
+| 1.3.0 | v0.18.0 (Google's official prebuilts) |
 | 1.2.0 | v0.16.0 (Google's official C API prebuilts) |
 | 1.1.1 | v0.14.0 |
 | 1.1.0 | v0.14.0 |
@@ -76,17 +72,12 @@ version number**. Which LiteRT-LM native build each release wraps:
 | 0.1.0-preview.2 | v0.13.1 |
 | 0.1.0-preview.1 | v0.13.1 |
 
-> **Native v0.13.x/v0.14.x are unsafe for more than one conversation.** LiteRT-LM v0.14.0 loses state
-> when two conversations of one engine are interleaved (upstream #2807 → garbage replies) and hangs
-> forever on the first send after a cancellation. Both are fixed from v0.16.0. The binding cannot detect
-> the native version at runtime, so the requirement is on you: pin `LiteRtLmSharp` **1.2.0 or newer**
-> (or the same-version runtime packages), and if you must stay on 1.1.x, keep one conversation alive at a
-> time. Also note that on every v0.14.0–v0.18.0 CPU backend only the **TopP** sampler is implemented —
-> a conversation asking for `Greedy`/`TopK` is created and then fails its first send with
-> `UNIMPLEMENTED: Sampler type: 3`, which this binding reports as `LiteRtSamplerNotSupportedException`
-> (the conversation is consumed by that failure; once any send has completed on the engine, the runtime
-> ignores later sampler parameters instead, so the requested strategy is silently not applied). Use
-> `LiteRtSamplerParams.NearGreedy` for argmax-like output.
+> **Use 1.2.0 or newer for more than one conversation per engine.** With the LiteRT-LM v0.13.x and
+> v0.14.0 libraries (LiteRtLmSharp 1.1.x and older), interleaving two conversations of one engine
+> silently loses the suspended conversation's state (upstream #2807, fixed in v0.15.0), and a send on a
+> conversation after a cancellation does not return. The binding cannot detect the native version at
+> runtime, so on those versions keep one conversation alive at a time and dispose a cancelled
+> conversation instead of sending on it again.
 
 ```csharp
 using LiteRtLmSharp;
@@ -169,18 +160,17 @@ conversations** (MEAI `ConversationId`) are supported — see the
 ## Important notes
 
 - **One chat engine alive at a time — by default.** Loading a second `LiteRtEngine` while one is alive
-  throws (the guard exists because creating a second engine was once observed to hang in the native layer —
-  an unreproduced report, and the reason is still unknown). To switch model or backend, dispose the
-  conversations and the engine, then `LiteRtEngine.Load` again — same pattern as Google's Edge Gallery. An
-  embedding engine (`LiteRtEmbeddingEngine`) does not count, so a chat model and an embedding model can stay
-  loaded together. Set `LiteRtEngine.AllowMultipleEngines = true` before the first load to run several chat
-  engines at once: two or three simultaneously live engines have been measured to load, generate in parallel
-  and dispose independently on win-x64 (natives v0.13.1–v0.18.0, CPU and GPU) and linux-x64 (v0.16.0). Not
-  validated on Android/macOS/iOS, with two different models, or with vision/audio and speculative decoding —
-  each additional engine costs its own KV cache and activation memory, so gate it on free RAM.
-- **Cancelled conversations are consumed.** After `CancelProcess()` the runtime answers every later send
-  with `CANCELLED` (v0.16.0/v0.18.0; v0.14.0 hangs). Keep the finished turns plus the partial reply with
-  `LiteRtConversation.Snapshot()` and continue on `LiteRtConversation.Resume(snapshot)` — see the
+  throws. To switch model or backend, dispose the conversations and the engine, then `LiteRtEngine.Load`
+  again — same pattern as Google's Edge Gallery. An embedding engine (`LiteRtEmbeddingEngine`) does not
+  count, so a chat model and an embedding model can stay loaded together. To keep several chat engines
+  alive, load each of them with `AllowMultipleEngines = true` in `LiteRtEngineOptions`; an engine loaded
+  without it stays alone. Several engines were measured on win-x64 (CPU and GPU), linux-x64 and the Android
+  emulator, but they only run in parallel on a desktop CPU, and each one holds its own memory (on Windows,
+  about 2.3 GB of committed memory per gemma-4 E2B engine on CPU), so check free memory before loading
+  another one. The `AllowMultipleEngines` docs list the measurements.
+- **A send that is cut short consumes its conversation.** After a cancelled send, an abandoned stream or
+  `CancelProcess()` during a send, the runtime answers every later send with `CANCELLED`. To continue, take a
+  `Clone()` before the send that might be cut and continue on the clone — see the
   [conversation-state guide](https://orihuelaconde.github.io/LiteRtLmSharp/conversation-state.html).
 - **`MaxNumTokens`** is the total context window (prompt + response, across turns). Use >= 1024;
   too small can make blocking generation return nothing.

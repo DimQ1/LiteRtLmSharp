@@ -4,14 +4,14 @@ using System.Text;
 namespace LiteRtLmSharp.Native;
 
 /// <summary>
-/// Reads the LiteRT-LM C API's error report (native v0.18.0+, <c>c/error_reporter.h</c>): the canonical
-/// status code and message that the last <i>failing</i> call left on the calling thread, so a failed native
-/// call surfaces the runtime's own reason instead of a bare "returned null".
+/// Combines the C API 1.0.0 return status with the native thread-local error message. Pointer factories
+/// keep their internal null-on-failure contract so their callers can attach operation-specific hints;
+/// setters and scalar readers throw immediately on an error status.
 /// </summary>
 /// <remarks>
-/// The native contract is errno-style: the report is thread-local, it is set only on failure (a successful
-/// call never clears it), and the message belongs to the library until the next failure or clear on that
-/// thread. The binding therefore (1) clears the slot right before a call it may need to diagnose, so a
+/// The message is thread-local, is set only on failure (a successful call never clears it), and belongs
+/// to the library until the next failure or clear on that thread. The binding therefore (1) clears the
+/// slot right before a call it may need to diagnose, so a
 /// report can never be a stale one left by an earlier, unrelated failure; (2) decides failure from the
 /// call's own return value, never from the report; and (3) reads the report on the same thread right after
 /// the failing call, then clears it, which also frees the message on long-lived thread-pool threads. Every
@@ -20,15 +20,33 @@ namespace LiteRtLmSharp.Native;
 /// </remarks>
 internal static class NativeError
 {
+    [ThreadStatic]
+    private static int _lastStatus;
+
+    internal static int LastStatus => _lastStatus;
+
+    internal static void Record(int status) => _lastStatus = status;
+
+    internal static void Check(int status, string operation)
+    {
+        Record(status);
+        if (status != 0)
+            throw Exception($"{operation} failed");
+    }
+
     /// <summary>Clears the calling thread's report before a call that may need diagnosing.</summary>
-    internal static void Clear() => LiteRtLmNative.litert_lm_clear_last_error();
+    internal static void Clear()
+    {
+        _lastStatus = 0;
+        LiteRtLmNative.litert_lm_clear_last_error();
+    }
 
     /// <summary>Reads and clears the calling thread's report; <c>null</c> when the runtime recorded none.</summary>
     internal static (LiteRtStatusCode Code, string Message)? Take()
     {
-        int code = LiteRtLmNative.litert_lm_get_last_error_code();
+        int code = _lastStatus;
         string? message = Marshal.PtrToStringUTF8(LiteRtLmNative.litert_lm_get_last_error_message());
-        LiteRtLmNative.litert_lm_clear_last_error();
+        Clear();
         if (code == 0 && string.IsNullOrEmpty(message))
             return null;
         // The header freezes the canonical set but asks callers to read unrecognized values as Unknown, so a

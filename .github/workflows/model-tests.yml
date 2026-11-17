@@ -42,7 +42,7 @@ on:
 
 env:
   # Keep in sync with Directory.Build.props <LiteRtLmVersion>.
-  NATIVE_REF: v0.18.0
+  NATIVE_REF: v0.19.1
   # Where the native-<NATIVE_REF> release lives (the download step uses
   # `vars.NATIVE_ASSETS_REPO || github.repository`). A fork sets the repository variable once to the
   # repository that publishes the natives; upstream leaves it unset and uses its own releases.
