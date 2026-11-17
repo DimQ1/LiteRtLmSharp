@@ -153,17 +153,26 @@ jobs:
             "-p:LiteRtLmVersion=$env:NATIVE_REF",
             '-p:ContinuousIntegrationBuild=true')
           dotnet pack LiteRtLmSharp/LiteRtLmSharp.csproj @common
+          if ($LASTEXITCODE -ne 0) { throw 'Managed package failed.' }
           dotnet pack LiteRtLmSharp.Extensions.AI/LiteRtLmSharp.Extensions.AI.csproj @common
+          if ($LASTEXITCODE -ne 0) { throw 'Extensions.AI package failed.' }
           dotnet pack LiteRtLmSharp.SemanticKernel/LiteRtLmSharp.SemanticKernel.csproj @common
+          if ($LASTEXITCODE -ne 0) { throw 'SemanticKernel package failed.' }
           $withNatives = -not ('${{ inputs.managed_only }}' -eq 'true')
           foreach ($rid in ($env:RIDS -split '\s+')) {
             $native = "runtimes/$rid/native"
             if ($withNatives -and (Test-Path $native) -and (Get-ChildItem $native -ErrorAction SilentlyContinue)) {
               dotnet pack "packaging/LiteRtLmSharp.runtime.$rid/LiteRtLmSharp.runtime.$rid.csproj" @common
+              if ($LASTEXITCODE -ne 0) { throw "Runtime package failed: $rid" }
             }
+            elseif ($withNatives) { throw "Missing native binaries for $rid" }
             else {
               Write-Host "skip LiteRtLmSharp.runtime.$rid"
             }
+          }
+          $expected = 3 + $(if ($withNatives) { ($env:RIDS -split '\s+').Count } else { 0 })
+          if (@(Get-ChildItem artifacts -Filter *.nupkg).Count -ne $expected) {
+            throw "Expected $expected matching packages before publication."
           }
           Get-ChildItem artifacts/*.nupkg | Select-Object Name, Length
 

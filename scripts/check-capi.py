@@ -83,11 +83,13 @@ exports = {
     )
 }
 root = pathlib.Path(__file__).resolve().parents[1]
-errors, count = [], 0
+errors, count, imports = [], 0, 0
 for source in (root / "LiteRtLmSharp" / "Native").glob("LiteRtLmNative*.cs"):
+    source_text = source.read_text(encoding="utf-8-sig")
+    imports += source_text.count("[LibraryImport(")
     for attributes, ret, managed, params in re.findall(
         r"((?:    \[[^\n]*\]\s*\n)+)    (?:internal|private) static partial (\S+) (\w+)\((.*?)\);",
-        source.read_text(encoding="utf-8-sig"), re.S,
+        source_text, re.S,
     ):
         entry = re.search(r'EntryPoint = "(\w+)"', attributes)
         name = entry[1] if entry else managed
@@ -102,6 +104,8 @@ for source in (root / "LiteRtLmSharp" / "Native").glob("LiteRtLmNative*.cs"):
         count += 1
 if count < 160:
     errors.append(f"Only {count} imports checked; declaration parsing is incomplete")
+if count != imports:
+    errors.append(f"Parsed {count} declarations but found {imports} LibraryImport attributes")
 if errors:
     raise SystemExit("\n".join(errors))
 print(f"Verified {count} native signatures against {len(exports)} exports (including size_t and Cdecl).")
