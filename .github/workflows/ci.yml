@@ -41,7 +41,7 @@ jobs:
           - os: windows-latest
             rid: win-x64
             asset: litertlm-windows_x86_64.tar.gz
-          - os: macos-15
+          - os: macos-26
             rid: osx-arm64
             asset: litertlm-macos_arm64.tar.gz
     runs-on: ${{ matrix.os }}

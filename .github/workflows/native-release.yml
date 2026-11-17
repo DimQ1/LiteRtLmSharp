@@ -259,7 +259,7 @@ jobs:
     name: macos-arm64 + ios-arm64
     needs: prepare
     if: needs.prepare.outputs.macos_arm64 == 'true' || needs.prepare.outputs.ios_arm64 == 'true'
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     env:
       SOURCE: ${{ needs.prepare.outputs.source }}
