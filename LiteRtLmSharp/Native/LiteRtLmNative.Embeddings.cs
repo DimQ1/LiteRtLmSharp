@@ -286,8 +286,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_embedding_responses_get_at(responses, index, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_embedding_responses_get_at");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_embedding_responses_get_at")]

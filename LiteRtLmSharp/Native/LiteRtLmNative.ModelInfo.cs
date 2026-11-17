@@ -257,8 +257,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_loaded_file_min_runtime_version(loaded_file, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_loaded_file_min_runtime_version");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_loaded_file_min_runtime_version")]

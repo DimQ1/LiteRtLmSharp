@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace LiteRtLmSharp.Native;
 
 /// <summary>
-/// Raw P/Invoke declarations for the LiteRT-LM C API (see <c>c/engine.h</c> upstream).
+/// Checked adapters and raw P/Invoke declarations for LiteRT-LM C API 1.0.0.
 /// Source-generated marshalling via <see cref="LibraryImportAttribute"/> (AOT-friendly).
 /// String parameters are UTF-8; <c>const char*</c> returns are owned by native objects
 /// and are returned as <see cref="nint"/> to avoid the runtime freeing them.
@@ -1085,9 +1085,7 @@ internal static unsafe partial class LiteRtLmNative
     // Read-only views into the chunk passed to the stream callback; the returned strings are owned
     // by the chunk and only valid during the callback invocation.
 
-    // The three getters run on the per-token hot path (once each per streamed chunk) and are pure
-    // field reads on the native side (engine.cc: `return chunk ? chunk->text : nullptr;`) — never
-    // blocking, never calling back into managed — so they qualify for [SuppressGCTransition].
+    // The getters copy borrowed chunk values through status/out parameters before the callback returns.
 
     /// <summary>The chunk's text content (a full message-JSON piece), or null for error/metadata-only
     /// chunks (including every is_final chunk, which carries no text).</summary>
@@ -1095,8 +1093,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_stream_chunk_get_text(chunk, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_stream_chunk_get_text");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_stream_chunk_get_text")]
@@ -1123,8 +1121,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_stream_chunk_get_error(chunk, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_stream_chunk_get_error");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_stream_chunk_get_error")]
@@ -1172,8 +1170,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_json_response_get_string(response, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_json_response_get_string");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_json_response_get_string")]
@@ -1422,8 +1420,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_token_union_get_string(token_union, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_token_union_get_string");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_token_union_get_string")]
@@ -1468,8 +1466,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_token_unions_get_token_at(tokens, index, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_token_unions_get_token_at");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_token_unions_get_token_at")]
@@ -1483,8 +1481,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_engine_get_start_token(engine, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_engine_get_start_token");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_engine_get_start_token")]
@@ -1498,8 +1496,8 @@ internal static unsafe partial class LiteRtLmNative
     {
         nint result = default;
         int status = V1_litert_lm_engine_get_stop_tokens(engine, &result);
-        NativeError.Record(status);
-        return status == 0 ? result : nint.Zero;
+        NativeError.Check(status, "litert_lm_engine_get_stop_tokens");
+        return result;
     }
 
     [LibraryImport(Library, EntryPoint = "litert_lm_engine_get_stop_tokens")]

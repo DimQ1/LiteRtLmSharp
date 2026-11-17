@@ -30,6 +30,17 @@ public sealed class NativeV1Tests
     }
 
     [Fact]
+    public void StartToken_ShouldRejectInvalidEngine_InsteadOfReportingNoToken()
+    {
+        LiteRtEngine.SetMinLogLevel(3);
+
+        var exception = Assert.Throws<LiteRtException>(() =>
+            LiteRtLmNative.litert_lm_engine_get_start_token(nint.Zero));
+
+        Assert.Equal(LiteRtStatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [Fact]
     public void InvalidLogLevel_ShouldPreserveStatus_WhenNativeMessageIsEmpty()
     {
         LiteRtEngine.SetMinLogLevel(1000);
