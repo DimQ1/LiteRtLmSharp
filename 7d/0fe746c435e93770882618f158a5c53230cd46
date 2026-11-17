@@ -1,0 +1,21 @@
+.github/workflows/publish-github-packages.yml
+  s_0b812487364c9b::t_fe79fc61417ecb 156,158,160,166,168,173-176
+scripts/check-capi.py
+  s_0b812487364c9b::t_874a1f749181cd 86,88-89,92,107-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d0fe746c435e93770882618f158a5c53230cd46",
+  "prompts": {},
+  "sessions": {
+    "s_0b812487364c9b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "eeabfda0-8629-4cc5-acae-ada9d99b89ed",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
