@@ -1,0 +1,19 @@
+.github/workflows/publish-github-packages.yml
+  s_0b812487364c9b::t_9484c285d4dcd1 259-260,276-316,321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f304f9d0416e638b3ae7178bc4961c8d014b2fc",
+  "prompts": {},
+  "sessions": {
+    "s_0b812487364c9b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "eeabfda0-8629-4cc5-acae-ada9d99b89ed",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
