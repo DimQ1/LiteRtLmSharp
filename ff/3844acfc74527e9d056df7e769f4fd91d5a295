@@ -1,0 +1,23 @@
+.github/scripts/notices-from-archive.py
+  s_1b2238d42f2c5d::t_e420d1f2d3c245 1,3-4,6,22-36,38,44-45,49-55
+.github/workflows/native-release.yml
+  s_1b2238d42f2c5d::t_81888afaf7fc65 392-396,399
+docs/native-build.md
+  s_1b2238d42f2c5d::t_8205f3c02b5e38 68-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff3844acfc74527e9d056df7e769f4fd91d5a295",
+  "prompts": {},
+  "sessions": {
+    "s_1b2238d42f2c5d": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "s_1b2238d42f2c5d",
+        "model": "unknown"
+      },
+      "human_author": "Dzmitry Shchamialiou <dzmitry.shchamialiou@ventionteams.com>"
+    }
+  }
+}
