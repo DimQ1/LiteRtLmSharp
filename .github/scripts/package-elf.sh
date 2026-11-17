@@ -52,7 +52,7 @@ if [ "$kind" = android ]; then
   # and falls back to the statically linked copy, and we ship no companion. Without the embedded copy
   # GPU sampling falls back to CPU (or fails, as the self-built v0.15.0 set did, LiteRT-LM#3135). The
   # x86_64 build targets the emulator, which has no OpenCL, so a missing sampler there only warns.
-  defined=$(readelf --dyn-syms -W "$lib" | awk '$7 != "UND" {print $8}')
+  defined=$(readelf --dyn-syms -W "$lib" | awk '$7 != "UND" {sub(/@.*/, "", $8); print $8}')
   if grep -qx 'litert_lm_speculative_decoding_config_create' <<< "$defined"; then
     # C API 1.0.0 hides every non-litert_lm_* symbol, including statically linked samplers.
     # Export absence no longer establishes GPU support; model tests must exercise the backend.
