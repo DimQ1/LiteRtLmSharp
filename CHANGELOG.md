@@ -6,6 +6,18 @@ LiteRT-LM native version it wraps (see the compatibility table in the [README](R
 managed `LiteRtLmSharp` package and every `LiteRtLmSharp.runtime.<rid>` package share one version and
 are published together.
 
+## [1.4.0-dimq1.1] — 2026-11-17
+
+> **The same packages and sources as [1.4.0](#140--2026-10-12), under a version that cannot collide.**
+> Upstream is preparing its own 1.4.0 from the same pull request
+> ([#15](https://github.com/OrihuelaConde/LiteRtLmSharp/pull/15)) and its review reshaped the API —
+> several live engines became a per-engine option, `Greedy`/`TopK` are now sent as `TopP` so both backends
+> honour them, and `Snapshot()`/`Resume()` were replaced by a `Clone()` checkpoint. Neither build exists on
+> nuget.org yet, and a package id + version identifies a build in the NuGet cache, not its feed, so this fork
+> publishes under a prerelease-suffixed version: pin `1.4.0-dimq1.1` for the fork build and `1.4.0` for
+> upstream's, and the two can never resolve to each other. Nothing else changed in this version — see the
+> 1.4.0 section below for the content, and the fork's README for the feed it is published to.
+
 ## [1.4.0] — 2026-10-12
 
 > Same sources as this fork's 1.3.0 build; the number is what changed. Upstream released its own 1.3.0

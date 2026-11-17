@@ -29,11 +29,14 @@ NuGet packages (LLamaSharp-style). Status: **stable (1.x)**.
 
 > **Fork note** ([DimQ1/LiteRtLmSharp](https://github.com/DimQ1/LiteRtLmSharp)). This fork publishes its
 > packages to its own GitHub Packages feed (`nuget.pkg.github.com/DimQ1`) and mirrors them as release
-> assets, with the native binaries unchanged (Google's official LiteRT-LM prebuilts). **1.4.0** is
+> assets, with the native binaries unchanged (Google's official LiteRT-LM prebuilts). **`1.4.0-dimq1.1`** is
 > upstream 1.3.0 plus the engine-usage improvements proposed upstream as
-> [OrihuelaConde/LiteRtLmSharp#15](https://github.com/OrihuelaConde/LiteRtLmSharp/pull/15); upstream's
-> own 1.3.0 on nuget.org is a **different build with the same number**, so pin 1.4.0 to get these
-> features and do not mix the two 1.3.0 builds on one machine.
+> [OrihuelaConde/LiteRtLmSharp#15](https://github.com/OrihuelaConde/LiteRtLmSharp/pull/15), which the
+> maintainer has since reworked towards his own 1.4.0 (a per-engine `AllowMultipleEngines`, `Greedy`/`TopK`
+> sent as `TopP`, a `Clone()` checkpoint instead of `Snapshot()`/`Resume()`). The two are different
+> assemblies, so this fork publishes under a prerelease-suffixed version: pin `1.4.0-dimq1.1` for the fork's
+> build and `1.4.0` for nuget.org's, and a restore can never take one for the other. (The superseded `1.4.0`
+> build of this fork stays published for history.)
 
 | Platform | Native | NuGet | CPU | GPU | Validated on |
 |---|:---:|:---:|:---:|:---:|---|
@@ -53,8 +56,8 @@ runtime package ships once on-device validation lands.</sub>
 ## Quick start
 
 ```xml
-<PackageReference Include="LiteRtLmSharp" Version="1.4.0" />
-<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.4.0" />
+<PackageReference Include="LiteRtLmSharp" Version="1.4.0-dimq1.1" />
+<PackageReference Include="LiteRtLmSharp.runtime.win-x64" Version="1.4.0-dimq1.1" />
 <!-- or LiteRtLmSharp.runtime.linux-x64 / linux-arm64 / android-arm64 / android-x64 (emulator) / osx-arm64, per target -->
 ```
 
@@ -63,7 +66,7 @@ version number**. Which LiteRT-LM native build each release wraps:
 
 | LiteRtLmSharp | LiteRT-LM native |
 |---|---|
-| 1.4.0 | v0.18.0 (Google's official C API prebuilts; this fork: upstream 1.3.0 + the engine-usage improvements) |
+| 1.4.0-dimq1.1 | v0.18.0 (Google's official C API prebuilts; this fork: upstream 1.3.0 + the engine-usage improvements) |
 | 1.3.0 | v0.18.0 (Google's official C API prebuilts) |
 | 1.2.0 | v0.16.0 (Google's official C API prebuilts) |
 | 1.1.1 | v0.14.0 |
